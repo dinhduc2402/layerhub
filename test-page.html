@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LayerHub Full JSON Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        .dataLayer-preview {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>LayerHub Full JSON Feature Test</h1>
+
+    <div class="test-section">
+        <h2>Test DataLayer Events</h2>
+        <p>Click these buttons to push test events to the dataLayer:</p>
+
+        <button onclick="pushBasicEvent()">Basic Event</button>
+        <button onclick="pushComplexEvent()">Complex Event</button>
+        <button onclick="pushLargeObject()">Large Object Event</button>
+        <button onclick="pushAllDataTypes()">All Data Types Event</button>
+        <button onclick="pushEcommerceEvent()">E-commerce Event</button>
+        <button onclick="clearDataLayer()">Clear DataLayer</button>
+
+        <div id="dataLayer-preview" class="dataLayer-preview">
+            Current dataLayer will be displayed here...
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Install the LayerHub Chrome extension from this directory</li>
+            <li>Click the LayerHub extension icon in your browser toolbar</li>
+            <li>The LayerHub panel should appear on the right side</li>
+            <li>Click any event in the list to view details</li>
+            <li>Click the "Full JSON" button to test the full JSON view</li>
+            <li>Test all features: search, copy, syntax highlighting, exit</li>
+        </ol>
+    </div>
+
+    <script>
+        // Initialize dataLayer
+        window.dataLayer = window.dataLayer || [];
+
+        function updatePreview() {
+            const preview = document.getElementById('dataLayer-preview');
+            preview.textContent = JSON.stringify(window.dataLayer, null, 2);
+        }
+
+        function pushBasicEvent() {
+            window.dataLayer.push({
+                event: 'page_view',
+                page: {
+                    title: 'Test Page',
+                    path: '/test'
+                }
+            });
+            updatePreview();
+        }
+
+        function pushComplexEvent() {
+            window.dataLayer.push({
+                event: 'custom_event',
+                eventType: 'user_interaction',
+                eventID: 'evt_' + Date.now(),
+                pageAutomaticValues: {
+                    url: window.location.href,
+                    title: document.title,
+                    referrer: document.referrer
+                },
+                eventLocation: {
+                    x: 100,
+                    y: 200,
+                    element: 'button'
+                },
+                tracking: {
+                    source: 'web',
+                    medium: 'test',
+                    campaign: 'layerhub-test'
+                },
+                userDetails: {
+                    id: 'user123',
+                    logged_in: true,
+                    account_type: 'premium'
+                },
+                customValues: {
+                    feature: 'full-json-test',
+                    version: '1.0.0',
+                    test_id: Math.random().toString(36).substr(2, 9)
+                }
+            });
+            updatePreview();
+        }
+
+        function pushLargeObject() {
+            const largeArray = Array.from({length: 100}, (_, i) => ({
+                id: i,
+                name: `Item ${i}`,
+                value: Math.random() * 1000,
+                nested: {
+                    level1: {
+                        level2: {
+                            level3: {
+                                data: `nested_data_${i}`
+                            }
+                        }
+                    }
+                }
+            }));
+
+            window.dataLayer.push({
+                event: 'large_data_event',
+                largeArray: largeArray,
+                metadata: {
+                    totalItems: largeArray.length,
+                    timestamp: Date.now(),
+                    complex: true
+                }
+            });
+            updatePreview();
+        }
+
+        function pushAllDataTypes() {
+            window.dataLayer.push({
+                event: 'data_types_test',
+                string_value: 'test string',
+                number_value: 42,
+                float_value: 3.14159,
+                boolean_true: true,
+                boolean_false: false,
+                null_value: null,
+                undefined_value: undefined,
+                nested_object: {
+                    inner_string: 'inner',
+                    inner_number: 123,
+                    inner_boolean: false,
+                    inner_null: null
+                },
+                array_value: [1, 'two', true, null, {nested: 'object'}],
+                date_converted: new Date().toISOString()
+            });
+            updatePreview();
+        }
+
+        function pushEcommerceEvent() {
+            window.dataLayer.push({
+                event: 'purchase',
+                eventType: 'conversion',
+                eventID: 'purchase_' + Date.now(),
+                conversion: {
+                    transaction_id: 'txn_' + Math.random().toString(36).substr(2, 9),
+                    value: 99.99,
+                    currency: 'USD',
+                    products: [
+                        {
+                            item_id: 'prod_1',
+                            item_name: 'Test Product 1',
+                            price: 49.99,
+                            quantity: 1
+                        },
+                        {
+                            item_id: 'prod_2',
+                            item_name: 'Test Product 2',
+                            price: 25.00,
+                            quantity: 2
+                        }
+                    ]
+                },
+                destinations: [
+                    {name: 'Google Analytics', status: 'sent'},
+                    {name: 'Facebook Pixel', status: 'sent'},
+                    {name: 'Custom Endpoint', status: 'pending'}
+                ],
+                triggers: [
+                    {type: 'page_load', id: 'trigger_1'},
+                    {type: 'user_action', id: 'trigger_2'}
+                ]
+            });
+            updatePreview();
+        }
+
+        function clearDataLayer() {
+            window.dataLayer.length = 0;
+            updatePreview();
+        }
+
+        // Initial preview update
+        updatePreview();
+
+        // Push initial event for testing
+        setTimeout(() => {
+            pushBasicEvent();
+        }, 1000);
+    </script>
+</body>
+</html>
