@@ -14,9 +14,9 @@
      /** @type {Array<{index:number,time:number,eventName:string,payload:any}>} */
      const trackedItems = [];
      let selectedItem = null;
-     let detailFullMode = false;
-     let detailActiveTab = "Overview";
+     let detailActiveTab = "Raw";
      let currentView = "list"; // "list" or "detail"
+     let detailViewMode = "eventDetail"; // "eventDetail" or "debug"
 
      function nowTimeString(ts) {
           const d = new Date(ts);
@@ -50,7 +50,10 @@
           selectedItem = item;
           listPane.style.display = "none";
           detailPane.style.display = "block";
-          title.textContent = getEventNameFromItem(item);
+          // Remove "event" from the title, show just the event type
+          const eventName = getEventNameFromItem(item);
+          title.textContent = eventName;
+          detailViewMode = "eventDetail"; // Reset to event detail view
           renderDetail();
      }
 
@@ -189,6 +192,7 @@
           body.style.padding = "8px";
           body.style.height = "calc(100vh - 44px)";
           body.style.position = "relative";
+          body.style.overflow = "hidden";
 
           const listPane = document.createElement("div");
           listPane.id = "lh-list";
@@ -201,7 +205,7 @@
           detailPane.id = "lh-detail";
           detailPane.style.width = "100%";
           detailPane.style.height = "100%";
-          detailPane.style.overflow = "auto";
+          detailPane.style.overflow = "hidden";
           detailPane.style.display = "none";
 
           const table = document.createElement("table");
@@ -333,10 +337,14 @@
 
           const s = selectedItem;
 
+          // Navigation bar with Back button and mode tabs on one row
+          const navBar = document.createElement("div");
+          navBar.style.cssText = "display: flex; gap: 8px; margin-bottom: 12px; align-items: center;";
+
           // Back button
           const backButton = document.createElement("button");
           backButton.textContent = "← Back to Events";
-          backButton.style.cssText = "margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; color: #374151; font-weight: 500; transition: all 0.15s ease; display: flex; align-items: center; gap: 6px;";
+          backButton.style.cssText = "padding: 8px 12px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; color: #374151; font-weight: 500; transition: all 0.15s ease;";
           backButton.addEventListener("click", () => {
                showListView();
           });
@@ -349,226 +357,332 @@
                backButton.style.borderColor = "#e5e7eb";
           });
 
-          // Toolbar with actions
-          const toolbar = document.createElement("div");
-          toolbar.className = "toolbar";
-          const title = document.createElement("div");
-          title.className = "title";
-          title.textContent = getEventNameFromItem(s);
-          const actions = document.createElement("div");
-          actions.className = "actions";
+          // Event Detail button
+          const eventDetailBtn = document.createElement("button");
+          eventDetailBtn.textContent = "Event Detail";
+          eventDetailBtn.style.cssText = "padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease;";
+          if (detailViewMode === "eventDetail") {
+               eventDetailBtn.style.background = "#0ea5e9";
+               eventDetailBtn.style.color = "#ffffff";
+               eventDetailBtn.style.borderColor = "#0ea5e9";
+          } else {
+               eventDetailBtn.style.background = "#ffffff";
+               eventDetailBtn.style.color = "#374151";
+          }
+          eventDetailBtn.addEventListener("click", () => {
+               detailViewMode = "eventDetail";
+               renderDetail();
+          });
 
-          if (detailFullMode) {
-               // Full JSON mode - simplified toolbar
-               const btnCopy = document.createElement("button");
-               btnCopy.textContent = "📋 Copy";
-               const btnExit = document.createElement("button");
-               btnExit.textContent = "Exit Full JSON";
-               actions.appendChild(btnCopy); actions.appendChild(btnExit);
+          // Debug button
+          const debugBtn = document.createElement("button");
+          debugBtn.textContent = "Debug";
+          debugBtn.style.cssText = "padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease;";
+          if (detailViewMode === "debug") {
+               debugBtn.style.background = "#0ea5e9";
+               debugBtn.style.color = "#ffffff";
+               debugBtn.style.borderColor = "#0ea5e9";
+          } else {
+               debugBtn.style.background = "#ffffff";
+               debugBtn.style.color = "#374151";
+          }
+          debugBtn.addEventListener("click", () => {
+               detailViewMode = "debug";
+               renderDetail();
+          });
 
-               pane.appendChild(backButton);
-               pane.appendChild(toolbar);
-               toolbar.appendChild(title); toolbar.appendChild(actions);
+          navBar.appendChild(backButton);
+          navBar.appendChild(eventDetailBtn);
+          navBar.appendChild(debugBtn);
 
-               // Search bar
-               const searchContainer = document.createElement("div");
-               searchContainer.style.cssText = "margin-bottom: 16px; position: relative;";
-               const searchInput = document.createElement("input");
-               searchInput.type = "text";
-               searchInput.placeholder = "Search JSON...";
-               searchInput.style.cssText = "width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; background: #f8fafc; color: #374151;";
-               searchContainer.appendChild(searchInput);
-               pane.appendChild(searchContainer);
+          pane.appendChild(navBar);
 
-               // Full JSON display with syntax highlighting
-               const jsonContainer = document.createElement("div");
-               jsonContainer.style.cssText = "background: #0f172a; border-radius: 12px; padding: 20px; overflow: auto; max-height: calc(100vh - 200px); font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; color: #e5e7eb; white-space: pre;";
+          // Tabs
+          // Find any property ending with "AutomaticValues" (udAutomaticValues, ugAutomaticValues, pageAutomaticValues, etc.)
+          const automaticValuesKey = Object.keys(s || {}).find(k => k.endsWith('AutomaticValues'));
+          const tabsSpec = [
+               { key: "Automatic Values", available: !!automaticValuesKey },
+               { key: "Location", available: !!s?.eventLocation },
+               { key: "Tracking", available: !!(s?.tracking || s?.consentType) },
+               { key: "User", available: !!s?.userDetails },
+               { key: "Time", available: !!s?.eventTimestamp },
+               { key: "Triggers", available: !!(s?.triggers || s?.trigger) },
+               { key: "Conversion", available: !!s?.conversion },
+               { key: "Destinations", available: !!s?.destinations },
+               { key: "Custom", available: !!s?.customValues },
+               { key: "Raw", available: true },
+               { key: "All", available: true }
+          ].filter(t => t.available);
 
-               const formattedJson = formatJsonWithSyntax(s);
-               jsonContainer.innerHTML = formattedJson;
-               pane.appendChild(jsonContainer);
+          if (!tabsSpec.some(t => t.key === detailActiveTab)) {
+               detailActiveTab = tabsSpec[0]?.key || "Raw";
+          }
 
-               // Search functionality
-               searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    highlightSearchResults(jsonContainer, searchTerm);
-               });
+          // Render based on view mode
+          if (detailViewMode === "debug") {
+               renderDebugView(pane, s);
+               return;
+          }
 
-               // Copy functionality
-               btnCopy.addEventListener('click', () => {
-                    try {
-                         navigator.clipboard.writeText(JSON.stringify(s, null, 2));
-                         btnCopy.textContent = "✓ Copied!";
-                         setTimeout(() => {
-                              btnCopy.textContent = "📋 Copy";
-                         }, 2000);
-                    } catch (_) {
-                         // Fallback for older browsers
-                         const textArea = document.createElement("textarea");
-                         textArea.value = JSON.stringify(s, null, 2);
-                         document.body.appendChild(textArea);
-                         textArea.select();
-                         document.execCommand('copy');
-                         document.body.removeChild(textArea);
-                         btnCopy.textContent = "✓ Copied!";
-                         setTimeout(() => {
-                              btnCopy.textContent = "📋 Copy";
-                         }, 2000);
-                    }
-               });
+          // Event Detail mode continues below
+          // Create layout container with side menu
+          const layoutContainer = document.createElement("div");
+          layoutContainer.style.cssText = "display: flex; height: calc(100vh - 100px); gap: 0;";
 
-               btnExit.addEventListener('click', () => {
-                    detailFullMode = false;
+          // Fixed side menu - map tabs to menu items
+          const sideMenu = document.createElement("div");
+          sideMenu.style.cssText = "width: 70px; background: #ffffff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 4px; flex-shrink: 0;";
+
+          // Map current tabs to menu icons and labels
+          const tabToMenuMap = {
+               "Automatic Values": { icon: "⚡", label: "Auto" },
+               "Location": { icon: "📍", label: "Location" },
+               "Tracking": { icon: "🎯", label: "Track" },
+               "User": { icon: "👤", label: "User" },
+               "Time": { icon: "⏰", label: "Time" },
+               "Triggers": { icon: "🔔", label: "Trigger" },
+               "Conversion": { icon: "💰", label: "Convert" },
+               "Destinations": { icon: "🚀", label: "Dest" },
+               "Custom": { icon: "⚙️", label: "Custom" },
+               "Raw": { icon: "📝", label: "Raw" },
+               "All": { icon: "📋", label: "All" }
+          };
+
+          tabsSpec.forEach(t => {
+               const menuInfo = tabToMenuMap[t.key] || { icon: "•", label: t.key.substring(0, 6) };
+
+               // Container for icon + label
+               const menuItem = document.createElement("div");
+               menuItem.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; width: 100%;";
+
+               // Icon
+               const iconDiv = document.createElement("div");
+               iconDiv.style.cssText = "font-size: 20px; line-height: 1;";
+               iconDiv.textContent = menuInfo.icon;
+
+               // Label
+               const labelDiv = document.createElement("div");
+               labelDiv.style.cssText = "font-size: 9px; font-weight: 500; line-height: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;";
+               labelDiv.textContent = menuInfo.label;
+
+               menuItem.appendChild(iconDiv);
+               menuItem.appendChild(labelDiv);
+               menuItem.setAttribute("title", t.key);
+
+               // Highlight active tab
+               if (t.key === detailActiveTab) {
+                    menuItem.style.background = "#0ea5e9";
+                    iconDiv.style.color = "#ffffff";
+                    labelDiv.style.color = "#ffffff";
+               } else {
+                    iconDiv.style.color = "#374151";
+                    labelDiv.style.color = "#6b7280";
+               }
+
+               menuItem.addEventListener("click", () => {
+                    detailActiveTab = t.key;
                     renderDetail();
                });
 
-          } else {
-               // Normal mode with tabs
-               const btnExpand = document.createElement("button"); btnExpand.textContent = "Expand all";
-               const btnCollapse = document.createElement("button"); btnCollapse.textContent = "Collapse all";
-               const btnFull = document.createElement("button"); btnFull.textContent = "Full JSON";
-               actions.appendChild(btnExpand); actions.appendChild(btnCollapse); actions.appendChild(btnFull);
-
-               pane.appendChild(backButton);
-               pane.appendChild(toolbar);
-               toolbar.appendChild(title); toolbar.appendChild(actions);
-
-               // Tabs
-               const tabsSpec = [
-                    { key: "Overview", available: true },
-                    { key: "Page", available: !!s?.pageAutomaticValues },
-                    { key: "Location", available: !!s?.eventLocation },
-                    { key: "Tracking", available: !!(s?.tracking || s?.consentType) },
-                    { key: "User", available: !!s?.userDetails },
-                    { key: "Time", available: !!s?.eventTimestamp },
-                    { key: "Triggers", available: !!(s?.triggers || s?.trigger) },
-                    { key: "Conversion", available: !!s?.conversion },
-                    { key: "Destinations", available: !!s?.destinations },
-                    { key: "Custom", available: !!s?.customValues },
-                    { key: "Raw", available: true },
-                    { key: "All", available: true }
-               ].filter(t => t.available);
-
-               if (!tabsSpec.some(t => t.key === detailActiveTab)) {
-                    detailActiveTab = tabsSpec[0]?.key || "Overview";
-               }
-
-               const tabs = document.createElement("div");
-               tabs.className = "tabs";
-               tabsSpec.forEach(t => {
-                    const b = document.createElement("button");
-                    b.className = "tab" + (t.key === detailActiveTab ? " active" : "");
-                    b.textContent = t.key;
-                    b.addEventListener("click", () => {
-                         detailActiveTab = t.key;
-                         renderDetail();
-                    });
-                    tabs.appendChild(b);
-               });
-               pane.appendChild(tabs);
-
-               function section(label, content) {
-                    if (content == null) return;
-                    const det = document.createElement("details");
-                    det.open = !detailFullMode;
-                    const sum = document.createElement("summary");
-                    sum.textContent = label;
-                    const inner = document.createElement("div");
-                    inner.className = "kv";
-                    // If object-like, pretty print, else value
-                    if (typeof content === "object") {
-                         const pre = document.createElement("pre");
-                         try {
-                              pre.textContent = JSON.stringify(content, null, 2);
-                         } catch (_) {
-                              pre.textContent = String(content);
-                         }
-                         // Make JSON block span the full width inside the .kv grid
-                         try { pre.style.gridColumn = "1 / -1"; } catch (_) { }
-                         try { pre.style.width = "100%"; } catch (_) { }
-                         inner.appendChild(pre);
-                    } else {
-                         const pre = document.createElement("pre");
-                         pre.textContent = String(content);
-                         // Ensure value block spans full width in the grid
-                         try { pre.style.gridColumn = "1 / -1"; } catch (_) { }
-                         try { pre.style.width = "100%"; } catch (_) { }
-                         inner.appendChild(pre);
+               menuItem.addEventListener("mouseenter", () => {
+                    if (t.key !== detailActiveTab) {
+                         menuItem.style.background = "#f0f9ff";
                     }
-                    det.appendChild(sum);
-                    det.appendChild(inner);
-                    pane.appendChild(det);
-               }
+                    menuItem.style.transform = "scale(1.05)";
+               });
+               menuItem.addEventListener("mouseleave", () => {
+                    if (t.key !== detailActiveTab) {
+                         menuItem.style.background = "transparent";
+                    }
+                    menuItem.style.transform = "scale(1)";
+               });
 
-               const renderAll = () => {
-                    section("Overview", { event: s.event || getEventNameFromItem(s), eventType: s.eventType, eventID: s.eventID });
-                    section("Page Automatic Values", s.pageAutomaticValues);
+               sideMenu.appendChild(menuItem);
+          });
+
+          // Add scrollable container for tab content
+          const tabContent = document.createElement("div");
+          tabContent.style.cssText = "flex: 1; height: 100%; overflow: auto; padding: 8px;";
+
+          layoutContainer.appendChild(sideMenu);
+          layoutContainer.appendChild(tabContent);
+          pane.appendChild(layoutContainer);
+
+          function section(label, content) {
+               if (content == null) return;
+               const det = document.createElement("details");
+               det.open = true; // Always open by default
+               const sum = document.createElement("summary");
+               sum.textContent = label;
+               const inner = document.createElement("div");
+               inner.className = "kv";
+               // If object-like, pretty print, else value
+               if (typeof content === "object") {
+                    const pre = document.createElement("pre");
+                    try {
+                         pre.textContent = JSON.stringify(content, null, 2);
+                    } catch (_) {
+                         pre.textContent = String(content);
+                    }
+                    // Make JSON block span the full width inside the .kv grid
+                    try { pre.style.gridColumn = "1 / -1"; } catch (_) { }
+                    try { pre.style.width = "100%"; } catch (_) { }
+                    inner.appendChild(pre);
+               } else {
+                    const pre = document.createElement("pre");
+                    pre.textContent = String(content);
+                    // Ensure value block spans full width in the grid
+                    try { pre.style.gridColumn = "1 / -1"; } catch (_) { }
+                    try { pre.style.width = "100%"; } catch (_) { }
+                    inner.appendChild(pre);
+               }
+               det.appendChild(sum);
+               det.appendChild(inner);
+               tabContent.appendChild(det);
+          }
+
+          const renderAll = () => {
+               // Find any property ending with "AutomaticValues"
+               const automaticValuesKey = Object.keys(s || {}).find(k => k.endsWith('AutomaticValues'));
+               section("Automatic Values", automaticValuesKey ? s[automaticValuesKey] : null);
+               section("Event Location", s.eventLocation);
+               section("Tracking", s.tracking);
+               section("Consent Type", s.consentType);
+               section("User Details", s.userDetails);
+               section("Event Timestamp", s.eventTimestamp);
+               section("ListenLayer", s.ListenLayer);
+               section("Triggers", s.triggers || s.trigger);
+               section("Conversion", s.conversion);
+               section("Destinations", s.destinations);
+               section("Custom Values", s.customValues);
+          };
+
+          switch (detailActiveTab) {
+               case "Automatic Values":
+                    // Find any property ending with "AutomaticValues"
+                    const automaticValuesKey = Object.keys(s || {}).find(k => k.endsWith('AutomaticValues'));
+                    section("Automatic Values", automaticValuesKey ? s[automaticValuesKey] : null);
+                    break;
+               case "Location":
                     section("Event Location", s.eventLocation);
+                    break;
+               case "Tracking":
                     section("Tracking", s.tracking);
                     section("Consent Type", s.consentType);
+                    break;
+               case "User":
                     section("User Details", s.userDetails);
+                    break;
+               case "Time":
                     section("Event Timestamp", s.eventTimestamp);
-                    section("ListenLayer", s.ListenLayer);
+                    break;
+               case "Triggers":
                     section("Triggers", s.triggers || s.trigger);
+                    break;
+               case "Conversion":
                     section("Conversion", s.conversion);
+                    break;
+               case "Destinations":
                     section("Destinations", s.destinations);
+                    break;
+               case "Custom":
                     section("Custom Values", s.customValues);
-                    section("Raw JSON", s);
-               };
-
-               switch (detailActiveTab) {
-                    case "Overview":
-                         section("Overview", { event: s.event || getEventNameFromItem(s), eventType: s.eventType, eventID: s.eventID });
-                         break;
-                    case "Page":
-                         section("Page Automatic Values", s.pageAutomaticValues);
-                         break;
-                    case "Location":
-                         section("Event Location", s.eventLocation);
-                         break;
-                    case "Tracking":
-                         section("Tracking", s.tracking);
-                         section("Consent Type", s.consentType);
-                         break;
-                    case "User":
-                         section("User Details", s.userDetails);
-                         break;
-                    case "Time":
-                         section("Event Timestamp", s.eventTimestamp);
-                         break;
-                    case "Triggers":
-                         section("Triggers", s.triggers || s.trigger);
-                         break;
-                    case "Conversion":
-                         section("Conversion", s.conversion);
-                         break;
-                    case "Destinations":
-                         section("Destinations", s.destinations);
-                         break;
-                    case "Custom":
-                         section("Custom Values", s.customValues);
-                         break;
-                    case "Raw":
-                         section("Raw JSON", s);
-                         break;
-                    case "All":
-                    default:
-                         renderAll();
-                         break;
-               }
-
-               // Action bindings
-               btnExpand.addEventListener('click', () => {
-                    pane.querySelectorAll('details').forEach(d => d.open = true);
-               });
-               btnCollapse.addEventListener('click', () => {
-                    pane.querySelectorAll('details').forEach(d => d.open = false);
-               });
-               btnFull.addEventListener('click', () => {
-                    detailFullMode = true;
-                    renderDetail();
-               });
+                    break;
+               case "Raw":
+                    // Full JSON display with syntax highlighting and color styling
+                    const jsonContainer = document.createElement("div");
+                    jsonContainer.style.cssText = "background: #0f172a; border-radius: 12px; padding: 20px; overflow: auto; height: calc(100vh - 200px); font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; color: #e5e7eb; white-space: pre;";
+                    const formattedJson = formatJsonWithSyntax(s);
+                    jsonContainer.innerHTML = formattedJson;
+                    tabContent.appendChild(jsonContainer);
+                    break;
+               case "All":
+               default:
+                    renderAll();
+                    break;
           }
+     }
+
+     function renderDebugView(pane, s) {
+          const debugContainer = document.createElement("div");
+          debugContainer.style.cssText = "padding: 16px; height: calc(100vh - 100px); overflow: auto;";
+
+          const infoBox = document.createElement("div");
+          infoBox.style.cssText = "background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 16px;";
+
+          const infoTitle = document.createElement("div");
+          infoTitle.style.cssText = "font-weight: 600; color: #0c4a6e; margin-bottom: 8px; font-size: 14px;";
+          infoTitle.textContent = "🪲 Debug Information";
+
+          const infoText = document.createElement("div");
+          infoText.style.cssText = "color: #0e7490; font-size: 13px; line-height: 1.6;";
+          infoText.innerHTML = "This view shows the moment when the event was triggered, including DOM element details, node path, and event context.";
+
+          infoBox.appendChild(infoTitle);
+          infoBox.appendChild(infoText);
+          debugContainer.appendChild(infoBox);
+
+          // Event Location Section
+          if (s.eventLocation) {
+               const section = createDebugSection("📍 Event Location", s.eventLocation);
+               debugContainer.appendChild(section);
+          }
+
+          // DOM Node Information
+          const domInfo = {
+               eventType: s.event || "Unknown",
+               timestamp: s.eventTimestamp || new Date().toISOString(),
+               pageUrl: s.eventLocation?.url || window.location.href,
+               triggeredBy: s.triggers || s.trigger || "Unknown"
+          };
+          const domSection = createDebugSection("🔍 DOM Context", domInfo);
+          debugContainer.appendChild(domSection);
+
+          // Tracking Info
+          if (s.tracking) {
+               const trackSection = createDebugSection("🎯 Tracking Details", s.tracking);
+               debugContainer.appendChild(trackSection);
+          }
+
+          // User Context
+          if (s.userDetails) {
+               const userSection = createDebugSection("👤 User Context", s.userDetails);
+               debugContainer.appendChild(userSection);
+          }
+
+          // Full Event Data
+          const fullDataSection = createDebugSection("📋 Complete Event Data", s);
+          debugContainer.appendChild(fullDataSection);
+
+          pane.appendChild(debugContainer);
+     }
+
+     function createDebugSection(title, data) {
+          const section = document.createElement("details");
+          section.style.cssText = "border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; background: #ffffff;";
+          section.open = true;
+
+          const summary = document.createElement("summary");
+          summary.style.cssText = "cursor: pointer; padding: 12px 14px; font-weight: 600; background: #f8fafc; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 13px;";
+          summary.textContent = title;
+
+          const content = document.createElement("div");
+          content.style.cssText = "padding: 12px 14px;";
+
+          const pre = document.createElement("pre");
+          pre.style.cssText = "margin: 0; background: #0f172a; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; line-height: 1.5; font-family: 'Fira Code', 'Consolas', monospace;";
+
+          try {
+               pre.textContent = JSON.stringify(data, null, 2);
+          } catch (_) {
+               pre.textContent = String(data);
+          }
+
+          content.appendChild(pre);
+          section.appendChild(summary);
+          section.appendChild(content);
+
+          return section;
      }
 
      function pushTracked(item) {
