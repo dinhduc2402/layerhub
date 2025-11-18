@@ -36,8 +36,10 @@
           const detailPane = root.shadowRoot.getElementById("lh-detail");
           const title = root.shadowRoot.getElementById("lh-title");
           currentView = "list";
-          listPane.style.display = "block";
-          detailPane.style.display = "none";
+          listPane.classList.add("dtl-visible");
+          listPane.classList.remove("dtl-hidden");
+          detailPane.classList.add("dtl-hidden");
+          detailPane.classList.remove("dtl-visible");
           title.textContent = "LayerHub Datalayer";
      }
 
@@ -48,8 +50,10 @@
           const title = root.shadowRoot.getElementById("lh-title");
           currentView = "detail";
           selectedItem = item;
-          listPane.style.display = "none";
-          detailPane.style.display = "block";
+          listPane.classList.add("dtl-hidden");
+          listPane.classList.remove("dtl-visible");
+          detailPane.classList.add("dtl-visible");
+          detailPane.classList.remove("dtl-hidden");
           // Remove "event" from the title, show just the event type
           const eventName = getEventNameFromItem(item);
           title.textContent = eventName;
@@ -134,6 +138,8 @@
 
           const mount = document.createElement("div");
           mount.id = ROOT_ID;
+          mount.className = "dtl-root";
+          // Critical inline styles to override website CSS
           mount.style.all = "initial";
           mount.style.position = "fixed";
           mount.style.right = "0";
@@ -146,86 +152,48 @@
 
           const container = document.createElement("div");
           container.setAttribute("part", "container");
-          container.style.width = "600px";
-          container.style.height = "100vh";
-          container.style.background = "#fff";
-          container.style.border = "1px solid rgba(0,0,0,.1)";
-          container.style.borderRadius = "12px 0 0 12px";
-          container.style.boxShadow = "0 8px 30px rgba(0,0,0,.12)";
-          container.style.overflow = "hidden";
-          container.style.color = "#1f2937";
-          container.style.position = "relative";
-          container.style.transition = "transform .25s ease";
+          container.className = "dtl-container";
 
           const header = document.createElement("div");
-          header.style.display = "flex";
-          header.style.alignItems = "center";
-          header.style.justifyContent = "space-between";
-          header.style.padding = "12px 16px";
-          header.style.background = "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)";
-          header.style.color = "#fff";
-          header.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-          header.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
+          header.className = "dtl-header";
 
           const title = document.createElement("div");
           title.id = "lh-title";
           title.textContent = "LayerHub Datalayer";
-          title.style.fontWeight = "700";
-          title.style.fontSize = "15px";
-          title.style.letterSpacing = "0.025em";
+          title.className = "dtl-title";
 
           const counter = document.createElement("span");
           counter.id = "lh-count";
           counter.textContent = "0";
-          counter.style.background = "rgba(255,255,255,.25)";
-          counter.style.padding = "4px 10px";
-          counter.style.borderRadius = "12px";
-          counter.style.fontSize = "12px";
-          counter.style.fontWeight = "600";
-          counter.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+          counter.className = "dtl-counter";
 
           header.appendChild(title);
           header.appendChild(counter);
 
           const body = document.createElement("div");
-          body.style.background = "#fff";
-          body.style.padding = "8px";
-          body.style.height = "calc(100vh - 44px)";
-          body.style.position = "relative";
-          body.style.overflow = "hidden";
+          body.className = "dtl-body";
 
           const listPane = document.createElement("div");
           listPane.id = "lh-list";
-          listPane.style.width = "100%";
-          listPane.style.height = "100%";
-          listPane.style.overflow = "auto";
-          listPane.style.display = "none";
+          listPane.className = "dtl-pane";
 
           const detailPane = document.createElement("div");
           detailPane.id = "lh-detail";
-          detailPane.style.width = "100%";
-          detailPane.style.height = "100%";
-          detailPane.style.overflow = "hidden";
-          detailPane.style.display = "none";
+          detailPane.className = "dtl-pane";
 
           const table = document.createElement("table");
-          table.style.width = "100%";
-          table.style.borderCollapse = "collapse";
-          table.style.fontSize = "13px";
-          table.style.fontWeight = "500";
+          table.className = "dtl-table";
 
           const thead = document.createElement("thead");
           const trh = document.createElement("tr");
           ["#", "Event", "Time"].forEach((h) => {
                const th = document.createElement("th");
                th.textContent = h;
-               th.style.textAlign = h === "#" ? "right" : "left";
-               th.style.padding = "10px 8px";
-               th.style.borderBottom = "2px solid #e5e7eb";
-               th.style.color = "#374151";
-               th.style.fontWeight = "600";
-               th.style.fontSize = "12px";
-               th.style.backgroundColor = "#f9fafb";
+               if (h === "#") {
+                    th.className = "dtl-table-header-first";
+               } else {
+                    th.className = "dtl-table-header";
+               }
                trh.appendChild(th);
           });
           thead.appendChild(trh);
@@ -240,48 +208,407 @@
           body.appendChild(detailPane);
 
           const style = document.createElement("style");
-          style.textContent = "tbody tr{cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background-color 0.15s ease} tbody tr:hover{background:#f0f9ff} tbody tr:last-child{border-bottom:none} td{padding:10px 8px;color:#374151} td:first-child{color:#6b7280;font-weight:600} .muted{color:#6b7280;font-weight:500} pre{margin:0;background:#0f172a;color:#e5e7eb;padding:10px;border-radius:8px;overflow:auto;font-size:12px;line-height:1.5} details{border:1px solid #e5e7eb;border-radius:8px;margin:8px 0;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.05)} details>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;background:#f8fafc;border-bottom:1px solid #e5e7eb;border-radius:8px;color:#374151;transition:background-color 0.15s ease} details[open]>summary{border-bottom-color:#e5e7eb;background:#f1f5f9} .kv{display:grid;grid-template-columns:140px 1fr;gap:8px;padding:12px 14px} .kv .k{color:#6b7280;font-weight:500} .toolbar{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px} .toolbar .title{font-weight:700;color:#1f2937;font-size:14px} .toolbar .actions{display:flex;gap:8px} .toolbar button{border:1px solid #d1d5db;background:#ffffff;color:#374151;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:500;transition:all 0.15s ease;box-shadow:0 1px 2px rgba(0,0,0,0.05)} .toolbar button:hover{background:#f8fafc;border-color:#9ca3af;box-shadow:0 2px 4px rgba(0,0,0,0.1)} .tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid #e5e7eb;margin:8px 0 12px;padding-bottom:2px} .tab{border:1px solid transparent;background:transparent;color:#6b7280;padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s ease;position:relative;top:2px} .tab.active{background:#ffffff;color:#0ea5e9;border-color:#e5e7eb;border-bottom-color:#ffffff;font-weight:600;top:0} .tab:hover:not(.active){background:#f8fafc;color:#374151} .text-gray-300{color:#d1d5db} .text-gray-500{color:#94a3b8} .text-green-400{color:#34d399} .text-orange-400{color:#fb923c} .text-blue-400{color:#60a5fa} .text-purple-400{color:#c084fc} .font-semibold{font-weight:600} .italic{font-style:italic}";
+          style.textContent = `
+/* Root and Layout Classes */
+.dtl-root {
+ position: fixed !important;
+ right: 0 !important;
+ top: 0 !important;
+ height: 100vh !important;
+ transform: translateX(0);
+ z-index: 2147483647 !important;
+ font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+ display: none !important;
+}
+
+.dtl-container {
+ width: 600px;
+ height: 100vh;
+ background: #fff;
+ border: 1px solid rgba(0,0,0,.1);
+ border-radius: 12px 0 0 12px;
+ box-shadow: 0 8px 30px rgba(0,0,0,.12);
+ overflow: hidden;
+ color: #1f2937;
+ position: relative;
+ transition: transform .25s ease;
+}
+
+.dtl-header {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ padding: 12px 16px;
+ background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+ color: #fff;
+ box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+ border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.dtl-title {
+ font-weight: 700;
+ font-size: 15px;
+ letter-spacing: 0.025em;
+}
+
+.dtl-counter {
+ background: rgba(255,255,255,.25);
+ padding: 4px 10px;
+ border-radius: 12px;
+ font-size: 12px;
+ font-weight: 600;
+ box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.dtl-body {
+ background: #fff;
+ height: calc(100vh - 44px);
+ position: relative;
+ overflow: hidden;
+}
+
+.dtl-pane {
+ width: 100%;
+ height: 100%;
+ overflow: auto;
+ display: none;
+}
+
+.dtl-pane.dtl-visible {
+ display: block;
+}
+
+.dtl-table {
+ width: 100%;
+ border-collapse: collapse;
+ font-size: 13px;
+ font-weight: 500;
+}
+
+.dtl-table-header {
+ text-align: left;
+ padding: 10px 8px;
+ border-bottom: 2px solid #e5e7eb;
+ color: #374151;
+ font-weight: 600;
+ font-size: 12px;
+ background-color: #f9fafb;
+}
+
+.dtl-table-header-first {
+ text-align: right;
+ padding: 10px 8px;
+ border-bottom: 2px solid #e5e7eb;
+ color: #374151;
+ font-weight: 600;
+ font-size: 12px;
+ background-color: #f9fafb;
+}
+
+.dtl-table-row {
+ cursor: pointer;
+ border-bottom: 1px solid #f1f5f9;
+ transition: background-color 0.15s ease;
+}
+
+.dtl-table-row:hover {
+ background: #f0f9ff;
+}
+
+.dtl-table-row:last-child {
+ border-bottom: none;
+}
+
+.dtl-table-cell {
+ padding: 10px 8px;
+ color: #374151;
+}
+
+.dtl-table-cell:first-child {
+ color: #6b7280;
+ font-weight: 600;
+ text-align: right;
+}
+
+.dtl-handle {
+ position: absolute;
+ left: -36px;
+ top: 50%;
+ transform: translateY(-50%);
+ width: 36px;
+ height: 84px;
+ border-radius: 8px 0 0 8px;
+ border: 1px solid rgba(0,0,0,.1);
+ background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+ color: #fff;
+ cursor: pointer;
+ font-weight: 700;
+ letter-spacing: 1px;
+ writing-mode: vertical-rl;
+ text-orientation: mixed;
+ box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+ transition: all 0.2s ease;
+}
+
+.dtl-handle:hover {
+ box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+ transform: translateY(-50%) translateX(-2px);
+}
+
+.dtl-nav-bar {
+ display: flex;
+ gap: 8px;
+ align-items: center;
+ padding: 8px;
+ border-bottom: 1px solid #e5e7eb;
+}
+
+.dtl-button {
+ padding: 8px 12px;
+ border: 1px solid #e5e7eb;
+ border-radius: 8px;
+ cursor: pointer;
+ font-size: 13px;
+ font-weight: 500;
+ transition: all 0.15s ease;
+ background: #ffffff;
+ color: #374151;
+}
+
+.dtl-button:hover {
+ background: #f8fafc;
+ border-color: #cbd5e1;
+}
+
+.dtl-button-primary {
+ background: #0ea5e9;
+ color: #ffffff;
+ border-color: #0ea5e9;
+}
+
+.dtl-layout {
+ display: flex;
+ height: calc(100vh - 20px);
+ gap: 0;
+}
+
+.dtl-side-menu {
+ width: 70px;
+ background: #ffffff;
+ border-right: 1px solid #e5e7eb;
+ display: flex;
+ flex-direction: column;
+ padding: 12px 6px;
+ gap: 4px;
+}
+
+.dtl-menu-item {
+ padding: 6px 4px;
+ cursor: pointer;
+ border-radius: 10px;
+ transition: all 0.2s ease;
+}
+
+.dtl-menu-item:hover {
+ background: #f0f9ff;
+ transform: scale(1.05);
+}
+
+.dtl-menu-item.active {
+ background: #0ea5e9;
+}
+
+.dtl-menu-label {
+ font-size: 12px;
+ font-weight: 500;
+ text-align: left;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ max-width: 60px;
+ color: #6b7280;
+}
+
+.dtl-menu-item.active .dtl-menu-label {
+ color: #ffffff;
+}
+
+.dtl-tab-content {
+ flex: 1;
+ height: 100%;
+ overflow: auto;
+ padding: 8px;
+}
+
+.dtl-json-container {
+ background: #0f172a;
+ border-radius: 12px;
+ padding: 16px;
+ overflow: auto;
+ height: calc(100vh - 150px);
+ font-family: 'Fira Code', 'Consolas', monospace;
+ font-size: 13px;
+ line-height: 1.5;
+ color: #e5e7eb;
+ white-space: pre;
+}
+
+.dtl-debug-container {
+ padding: 16px;
+ height: calc(100vh - 100px);
+ overflow: auto;
+}
+
+.dtl-info-box {
+ background: #f0f9ff;
+ border: 1px solid #bae6fd;
+ border-radius: 8px;
+ padding: 16px;
+ margin-bottom: 16px;
+}
+
+.dtl-info-title {
+ font-weight: 600;
+ color: #0c4a6e;
+ margin-bottom: 8px;
+ font-size: 14px;
+}
+
+.dtl-info-text {
+ color: #0e7490;
+ font-size: 13px;
+ line-height: 1.6;
+}
+
+.dtl-debug-section {
+ border: 1px solid #e5e7eb;
+ border-radius: 8px;
+ margin-bottom: 12px;
+ background: #ffffff;
+}
+
+.dtl-debug-summary {
+ cursor: pointer;
+ padding: 12px 14px;
+ font-weight: 600;
+ background: #f8fafc;
+ border-bottom: 1px solid #e5e7eb;
+ color: #374151;
+ font-size: 13px;
+}
+
+.dtl-debug-content {
+ padding: 12px 14px;
+}
+
+.dtl-debug-pre {
+ margin: 0;
+ background: #0f172a;
+ color: #e5e7eb;
+ padding: 12px;
+ border-radius: 6px;
+ overflow: auto;
+ font-size: 12px;
+ line-height: 1.5;
+ font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* Legacy and utility classes */
+.muted {
+ color: #6b7280;
+ font-weight: 500;
+}
+
+pre {
+ margin: 0;
+ background: #0f172a;
+ color: #e5e7eb;
+ padding: 10px;
+ border-radius: 8px;
+ overflow: auto;
+ font-size: 12px;
+ line-height: 1.5;
+}
+
+details {
+ border: 1px solid #e5e7eb;
+ border-radius: 8px;
+ margin: 8px 0;
+ background: #fff;
+ box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+details > summary {
+ cursor: pointer;
+ list-style: none;
+ padding: 12px 14px;
+ font-weight: 600;
+ background: #f8fafc;
+ border-bottom: 1px solid #e5e7eb;
+ border-radius: 8px;
+ color: #374151;
+ transition: background-color 0.15s ease;
+}
+
+details[open] > summary {
+ border-bottom-color: #e5e7eb;
+ background: #f1f5f9;
+}
+
+.kv {
+ display: grid;
+ grid-template-columns: 140px 1fr;
+ gap: 8px;
+ padding: 12px 14px;
+}
+
+.kv .k {
+ color: #6b7280;
+ font-weight: 500;
+}
+
+.kv pre {
+ grid-column: 1 / -1;
+ width: 100%;
+}
+
+/* Text color utilities */
+.text-gray-300 { color: #d1d5db; }
+.text-gray-500 { color: #94a3b8; }
+.text-green-400 { color: #34d399; }
+.text-orange-400 { color: #fb923c; }
+.text-blue-400 { color: #60a5fa; }
+.text-purple-400 { color: #c084fc; }
+.font-semibold { font-weight: 600; }
+.italic { font-style: italic; }
+
+/* State classes */
+.dtl-hidden { display: none !important; }
+.dtl-visible { display: block !important; }
+.dtl-collapsed { transform: translateX(100%); }
+`;
 
           // Toggle handle similar to Monica sidebar
           const handle = document.createElement("button");
           handle.textContent = "DL";
           handle.setAttribute("title", "Toggle Datalayer Panel");
-          handle.style.position = "absolute";
-          handle.style.left = "-36px";
-          handle.style.top = "50%";
-          handle.style.transform = "translateY(-50%)";
-          handle.style.width = "36px";
-          handle.style.height = "84px";
-          handle.style.borderRadius = "8px 0 0 8px";
-          handle.style.border = "1px solid rgba(0,0,0,.1)";
-          handle.style.background = "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)";
-          handle.style.color = "#fff";
-          handle.style.cursor = "pointer";
-          handle.style.fontWeight = "700";
-          handle.style.letterSpacing = "1px";
-          handle.style.writingMode = "vertical-rl";
-          handle.style.textOrientation = "mixed";
-          handle.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-          handle.style.transition = "all 0.2s ease";
+          handle.className = "dtl-handle";
 
           let isCollapsed = false;
           try { isCollapsed = localStorage.getItem("lh-collapsed") === "1"; } catch (_) { }
           function applyCollapsed() {
-               container.style.transform = isCollapsed ? "translateX(100%)" : "translateX(0)";
+               if (isCollapsed) {
+                    container.classList.add("dtl-collapsed");
+               } else {
+                    container.classList.remove("dtl-collapsed");
+               }
           }
           handle.addEventListener("click", () => {
                isCollapsed = !isCollapsed;
                applyCollapsed();
                try { localStorage.setItem("lh-collapsed", isCollapsed ? "1" : "0"); } catch (_) { }
           });
-          handle.addEventListener("mouseenter", () => {
-               handle.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
-               handle.style.transform = "translateY(-50%) translateX(-2px)";
-          });
-          handle.addEventListener("mouseleave", () => {
-               handle.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-               handle.style.transform = "translateY(-50%)";
-          });
+          // Hover effects are now handled by CSS
 
           shadow.appendChild(style);
           // Ensure JSON <pre> spans full width inside key-value grid
@@ -293,7 +620,15 @@
           container.appendChild(body);
           container.appendChild(handle);
 
-          (document.body || document.documentElement).appendChild(mount);
+          // Ensure we append to body, not documentElement
+          if (document.body) {
+               document.body.appendChild(mount);
+          } else {
+               document.documentElement.appendChild(mount);
+          }
+          // Start with panel hidden
+          mount.classList.add("dtl-hidden");
+          mount.classList.remove("dtl-visible");
           applyCollapsed();
           return mount;
      }
@@ -307,14 +642,16 @@
           for (let i = trackedItems.length - 1; i >= 0; i--) {
                const it = trackedItems[i];
                const tr = document.createElement("tr");
+               tr.className = "dtl-table-row";
                const tdIdx = document.createElement("td");
                tdIdx.textContent = String(it.index);
-               tdIdx.style.textAlign = "right";
+               tdIdx.className = "dtl-table-cell";
                const tdEvent = document.createElement("td");
                tdEvent.textContent = it.eventName;
+               tdEvent.className = "dtl-table-cell";
                const tdTime = document.createElement("td");
                tdTime.textContent = nowTimeString(it.time);
-               tdTime.className = "muted";
+               tdTime.className = "dtl-table-cell muted";
                tr.appendChild(tdIdx); tr.appendChild(tdEvent); tr.appendChild(tdTime);
                tr.addEventListener("click", () => {
                     showDetailView(it.payload);
@@ -339,35 +676,22 @@
 
           // Navigation bar with Back button and mode tabs on one row
           const navBar = document.createElement("div");
-          navBar.style.cssText = "display: flex; gap: 8px; margin-bottom: 12px; align-items: center;";
+          navBar.className = "dtl-nav-bar";
 
           // Back button
           const backButton = document.createElement("button");
           backButton.textContent = "← Back to Events";
-          backButton.style.cssText = "padding: 8px 12px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; color: #374151; font-weight: 500; transition: all 0.15s ease;";
+          backButton.className = "dtl-button";
           backButton.addEventListener("click", () => {
                showListView();
-          });
-          backButton.addEventListener("mouseenter", () => {
-               backButton.style.background = "#e2e8f0";
-               backButton.style.borderColor = "#cbd5e1";
-          });
-          backButton.addEventListener("mouseleave", () => {
-               backButton.style.background = "#f8fafc";
-               backButton.style.borderColor = "#e5e7eb";
           });
 
           // Event Detail button
           const eventDetailBtn = document.createElement("button");
           eventDetailBtn.textContent = "Event Detail";
-          eventDetailBtn.style.cssText = "padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease;";
+          eventDetailBtn.className = "dtl-button";
           if (detailViewMode === "eventDetail") {
-               eventDetailBtn.style.background = "#0ea5e9";
-               eventDetailBtn.style.color = "#ffffff";
-               eventDetailBtn.style.borderColor = "#0ea5e9";
-          } else {
-               eventDetailBtn.style.background = "#ffffff";
-               eventDetailBtn.style.color = "#374151";
+               eventDetailBtn.classList.add("dtl-button-primary");
           }
           eventDetailBtn.addEventListener("click", () => {
                detailViewMode = "eventDetail";
@@ -377,14 +701,9 @@
           // Debug button
           const debugBtn = document.createElement("button");
           debugBtn.textContent = "Debug";
-          debugBtn.style.cssText = "padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease;";
+          debugBtn.className = "dtl-button";
           if (detailViewMode === "debug") {
-               debugBtn.style.background = "#0ea5e9";
-               debugBtn.style.color = "#ffffff";
-               debugBtn.style.borderColor = "#0ea5e9";
-          } else {
-               debugBtn.style.background = "#ffffff";
-               debugBtn.style.color = "#374151";
+               debugBtn.classList.add("dtl-button-primary");
           }
           debugBtn.addEventListener("click", () => {
                detailViewMode = "debug";
@@ -427,74 +746,48 @@
           // Event Detail mode continues below
           // Create layout container with side menu
           const layoutContainer = document.createElement("div");
-          layoutContainer.style.cssText = "display: flex; height: calc(100vh - 100px); gap: 0;";
+          layoutContainer.className = "dtl-layout";
 
           // Fixed side menu - map tabs to menu items
           const sideMenu = document.createElement("div");
-          sideMenu.style.cssText = "width: 70px; background: #ffffff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 4px; flex-shrink: 0;";
+          sideMenu.className = "dtl-side-menu";
 
-          // Map current tabs to menu icons and labels
+          // Map current tabs to menu labels
           const tabToMenuMap = {
-               "Automatic Values": { icon: "⚡", label: "Auto" },
-               "Location": { icon: "📍", label: "Location" },
-               "Tracking": { icon: "🎯", label: "Track" },
-               "User": { icon: "👤", label: "User" },
-               "Time": { icon: "⏰", label: "Time" },
-               "Triggers": { icon: "🔔", label: "Trigger" },
-               "Conversion": { icon: "💰", label: "Convert" },
-               "Destinations": { icon: "🚀", label: "Dest" },
-               "Custom": { icon: "⚙️", label: "Custom" },
-               "Raw": { icon: "📝", label: "Raw" },
-               "All": { icon: "📋", label: "All" }
+               "Automatic Values": { label: "Auto" },
+               "Location": { label: "Location" },
+               "Tracking": { label: "Tracking" },
+               "User": { label: "User" },
+               "Time": { label: "Time" },
+               "Triggers": { label: "Trigger" },
+               "Conversion": { label: "Conversion" },
+               "Destinations": { label: "Destinations" },
+               "Custom": { label: "Custom" },
+               "Raw": { label: "Raw" },
+               "All": { label: "All" }
           };
 
           tabsSpec.forEach(t => {
-               const menuInfo = tabToMenuMap[t.key] || { icon: "•", label: t.key.substring(0, 6) };
+               const menuInfo = tabToMenuMap[t.key] || { label: t.key.substring(0, 6) };
 
-               // Container for icon + label
+               // Container for label only
                const menuItem = document.createElement("div");
-               menuItem.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; width: 100%;";
-
-               // Icon
-               const iconDiv = document.createElement("div");
-               iconDiv.style.cssText = "font-size: 20px; line-height: 1;";
-               iconDiv.textContent = menuInfo.icon;
+               menuItem.className = "dtl-menu-item";
+               if (t.key === detailActiveTab) {
+                    menuItem.classList.add("active");
+               }
 
                // Label
                const labelDiv = document.createElement("div");
-               labelDiv.style.cssText = "font-size: 9px; font-weight: 500; line-height: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;";
+               labelDiv.className = "dtl-menu-label";
                labelDiv.textContent = menuInfo.label;
 
-               menuItem.appendChild(iconDiv);
                menuItem.appendChild(labelDiv);
                menuItem.setAttribute("title", t.key);
-
-               // Highlight active tab
-               if (t.key === detailActiveTab) {
-                    menuItem.style.background = "#0ea5e9";
-                    iconDiv.style.color = "#ffffff";
-                    labelDiv.style.color = "#ffffff";
-               } else {
-                    iconDiv.style.color = "#374151";
-                    labelDiv.style.color = "#6b7280";
-               }
 
                menuItem.addEventListener("click", () => {
                     detailActiveTab = t.key;
                     renderDetail();
-               });
-
-               menuItem.addEventListener("mouseenter", () => {
-                    if (t.key !== detailActiveTab) {
-                         menuItem.style.background = "#f0f9ff";
-                    }
-                    menuItem.style.transform = "scale(1.05)";
-               });
-               menuItem.addEventListener("mouseleave", () => {
-                    if (t.key !== detailActiveTab) {
-                         menuItem.style.background = "transparent";
-                    }
-                    menuItem.style.transform = "scale(1)";
                });
 
                sideMenu.appendChild(menuItem);
@@ -502,7 +795,7 @@
 
           // Add scrollable container for tab content
           const tabContent = document.createElement("div");
-          tabContent.style.cssText = "flex: 1; height: 100%; overflow: auto; padding: 8px;";
+          tabContent.className = "dtl-tab-content";
 
           layoutContainer.appendChild(sideMenu);
           layoutContainer.appendChild(tabContent);
@@ -591,7 +884,7 @@
                case "Raw":
                     // Full JSON display with syntax highlighting and color styling
                     const jsonContainer = document.createElement("div");
-                    jsonContainer.style.cssText = "background: #0f172a; border-radius: 12px; padding: 20px; overflow: auto; height: calc(100vh - 200px); font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; color: #e5e7eb; white-space: pre;";
+                    jsonContainer.className = "dtl-json-container";
                     const formattedJson = formatJsonWithSyntax(s);
                     jsonContainer.innerHTML = formattedJson;
                     tabContent.appendChild(jsonContainer);
@@ -605,17 +898,17 @@
 
      function renderDebugView(pane, s) {
           const debugContainer = document.createElement("div");
-          debugContainer.style.cssText = "padding: 16px; height: calc(100vh - 100px); overflow: auto;";
+          debugContainer.className = "dtl-debug-container";
 
           const infoBox = document.createElement("div");
-          infoBox.style.cssText = "background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 16px;";
+          infoBox.className = "dtl-info-box";
 
           const infoTitle = document.createElement("div");
-          infoTitle.style.cssText = "font-weight: 600; color: #0c4a6e; margin-bottom: 8px; font-size: 14px;";
+          infoTitle.className = "dtl-info-title";
           infoTitle.textContent = "🪲 Debug Information";
 
           const infoText = document.createElement("div");
-          infoText.style.cssText = "color: #0e7490; font-size: 13px; line-height: 1.6;";
+          infoText.className = "dtl-info-text";
           infoText.innerHTML = "This view shows the moment when the event was triggered, including DOM element details, node path, and event context.";
 
           infoBox.appendChild(infoTitle);
@@ -659,18 +952,18 @@
 
      function createDebugSection(title, data) {
           const section = document.createElement("details");
-          section.style.cssText = "border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; background: #ffffff;";
+          section.className = "dtl-debug-section";
           section.open = true;
 
           const summary = document.createElement("summary");
-          summary.style.cssText = "cursor: pointer; padding: 12px 14px; font-weight: 600; background: #f8fafc; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 13px;";
+          summary.className = "dtl-debug-summary";
           summary.textContent = title;
 
           const content = document.createElement("div");
-          content.style.cssText = "padding: 12px 14px;";
+          content.className = "dtl-debug-content";
 
           const pre = document.createElement("pre");
-          pre.style.cssText = "margin: 0; background: #0f172a; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; line-height: 1.5; font-family: 'Fira Code', 'Consolas', monospace;";
+          pre.className = "dtl-debug-pre";
 
           try {
                pre.textContent = JSON.stringify(data, null, 2);
@@ -707,7 +1000,8 @@
 
      function showPanel() {
           const mount = ensurePanel();
-          mount.style.display = "block";
+          mount.classList.remove("dtl-hidden");
+          mount.classList.add("dtl-visible");
           // reset to list view and request initial snapshot from page
           currentView = "list";
           try { trackedItems.length = 0; } catch (_) { }
@@ -725,12 +1019,15 @@
 
      function hidePanel() {
           const mount = document.getElementById(ROOT_ID);
-          if (mount) mount.style.display = "none";
+          if (mount) {
+               mount.classList.add("dtl-hidden");
+               mount.classList.remove("dtl-visible");
+          }
      }
 
      function togglePanel() {
           const mount = document.getElementById(ROOT_ID);
-          if (!mount || mount.style.display === "none") {
+          if (!mount || mount.classList.contains("dtl-hidden")) {
                showPanel();
           } else {
                hidePanel();

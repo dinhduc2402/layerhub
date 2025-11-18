@@ -85,24 +85,18 @@ export function createSideMenuItem(menuInfo, tabKey, detailActiveTab, onClickHan
      const menuItem = document.createElement("div");
      menuItem.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; width: 100%;";
 
-     const iconDiv = document.createElement("div");
-     iconDiv.style.cssText = "font-size: 20px; line-height: 1;";
-     iconDiv.textContent = menuInfo.icon;
 
      const labelDiv = document.createElement("div");
      labelDiv.style.cssText = "font-size: 9px; font-weight: 500; line-height: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;";
      labelDiv.textContent = menuInfo.label;
 
-     menuItem.appendChild(iconDiv);
      menuItem.appendChild(labelDiv);
      menuItem.setAttribute("title", tabKey);
 
      if (tabKey === detailActiveTab) {
           menuItem.style.background = "#0ea5e9";
-          iconDiv.style.color = "#ffffff";
           labelDiv.style.color = "#ffffff";
      } else {
-          iconDiv.style.color = "#374151";
           labelDiv.style.color = "#6b7280";
      }
 
@@ -126,15 +120,15 @@ export function createSideMenuItem(menuInfo, tabKey, detailActiveTab, onClickHan
 }
 
 export const TAB_TO_MENU_MAP = {
-     "Automatic Values": { icon: "⚡", label: "Auto" },
-     "Location": { icon: "📍", label: "Location" },
-     "Tracking": { icon: "🎯", label: "Track" },
-     "User": { icon: "👤", label: "User" },
-     "Time": { icon: "⏰", label: "Time" },
-     "Triggers": { icon: "🔔", label: "Trigger" },
-     "Conversion": { icon: "💰", label: "Convert" },
-     "Destinations": { icon: "🚀", label: "Dest" },
-     "Custom": { icon: "⚙️", label: "Custom" },
-     "Raw": { icon: "📝", label: "Raw" },
-     "All": { icon: "📋", label: "All" }
+     "Automatic Values": { label: "Auto" },
+     "Location": { label: "Location" },
+     "Tracking": { label: "Track" },
+     "User": { label: "User" },
+     "Time": { label: "Time" },
+     "Triggers": { label: "Trigger" },
+     "Conversion": { label: "Convert" },
+     "Destinations": { label: "Dest" },
+     "Custom": { label: "Custom" },
+     "Raw": { label: "Raw" },
+     "All": { label: "All" }
 };
