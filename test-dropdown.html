@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dropdown Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Dropdown Menu Implementation</h1>
+    <p>Click the button below to toggle the LayerHub Datalayer panel and test the dropdown menu:</p>
+    <button onclick="togglePanel()">Toggle Datalayer Panel</button>
+
+    <script>
+        function togglePanel() {
+            // Simulate the chrome.runtime message that would normally trigger the panel
+            const event = new CustomEvent('LH_DL_READY');
+            document.dispatchEvent(event);
+            
+            // Also simulate some dataLayer pushes to test the functionality
+            setTimeout(() => {
+                const pushEvent = new CustomEvent('LH_DL_PUSH', {
+                    detail: { item: { event: 'test_event', data: 'test_data' } }
+                });
+                document.dispatchEvent(pushEvent);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

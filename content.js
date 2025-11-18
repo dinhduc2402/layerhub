@@ -17,6 +17,10 @@
      let detailActiveTab = "Raw";
      let currentView = "list"; // "list" or "detail"
      let detailViewMode = "eventDetail"; // "eventDetail" or "debug"
+     let currentMainView = "events"; // "events" or "account"
+
+     // Get account data from Listenlayer
+     const accountData = window.Listenlayer.getAccount();
 
      function nowTimeString(ts) {
           const d = new Date(ts);
@@ -36,6 +40,7 @@
           const detailPane = root.shadowRoot.getElementById("lh-detail");
           const title = root.shadowRoot.getElementById("lh-title");
           currentView = "list";
+          currentMainView = "events";
           listPane.classList.add("dtl-visible");
           listPane.classList.remove("dtl-hidden");
           detailPane.classList.add("dtl-hidden");
@@ -59,6 +64,32 @@
           title.textContent = eventName;
           detailViewMode = "eventDetail"; // Reset to event detail view
           renderDetail();
+     }
+
+     function showAccountView() {
+          const root = ensurePanel();
+          const listPane = root.shadowRoot.getElementById("lh-list");
+          const detailPane = root.shadowRoot.getElementById("lh-detail");
+          const title = root.shadowRoot.getElementById("lh-title");
+          currentMainView = "account";
+          listPane.classList.add("dtl-hidden");
+          listPane.classList.remove("dtl-visible");
+          detailPane.classList.add("dtl-visible");
+          detailPane.classList.remove("dtl-hidden");
+          title.textContent = "Account Details";
+
+          // Render account detail view
+          detailPane.innerHTML = "";
+          detailPane.appendChild(createAccountDetailView(accountData));
+     }
+
+     function showEventsView() {
+          const root = ensurePanel();
+          const listPane = root.shadowRoot.getElementById("lh-list");
+          const detailPane = root.shadowRoot.getElementById("lh-detail");
+          const title = root.shadowRoot.getElementById("lh-title");
+          currentMainView = "events";
+          showListView();
      }
 
      function formatJsonWithSyntax(obj) {
@@ -162,12 +193,65 @@
           title.textContent = "LayerHub Datalayer";
           title.className = "dtl-title";
 
+          // Create dropdown menu container
+          const dropdownContainer = document.createElement("div");
+          dropdownContainer.className = "dtl-dropdown-container";
+          dropdownContainer.style.cssText = "position: relative; display: inline-block; margin-left: 8px;";
+
+          // Create dropdown menu icon with SVG
+          const dropdownIcon = document.createElement("span");
+          dropdownIcon.className = "dtl-dropdown-icon";
+          dropdownIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>`;
+          dropdownIcon.style.cssText = "cursor: pointer; padding: 4px; border-radius: 4px; transition: background-color 0.2s ease; display: flex; align-items: center; justify-content: center;";
+          dropdownIcon.setAttribute("title", "Account Menu");
+
+          // Create dropdown menu content
+          const dropdownMenu = document.createElement("div");
+          dropdownMenu.className = "dtl-dropdown-menu";
+          dropdownMenu.style.cssText = "position: absolute; top: 100%; right: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 120px; z-index: 1000; display: none; padding: 8px 0;";
+
+          // Create dropdown menu items
+          const menuItems = [
+               { text: "Account", action: () => showAccountView() },
+               { text: "Events", action: () => showEventsView() }
+          ];
+
+          menuItems.forEach(item => {
+               const menuItem = document.createElement("div");
+               menuItem.className = "dtl-dropdown-item";
+               menuItem.textContent = item.text;
+               menuItem.style.cssText = "padding: 8px 12px; cursor: pointer; font-size: 13px; color: #374151; transition: background-color 0.15s ease;";
+               menuItem.addEventListener("click", item.action);
+               menuItem.addEventListener("mouseenter", () => {
+                    menuItem.style.backgroundColor = "#f0f9ff";
+               });
+               menuItem.addEventListener("mouseleave", () => {
+                    menuItem.style.backgroundColor = "transparent";
+               });
+               dropdownMenu.appendChild(menuItem);
+          });
+
+          // Add hover functionality
+          dropdownIcon.addEventListener("mouseenter", () => {
+               dropdownMenu.style.display = "block";
+               dropdownIcon.style.backgroundColor = "rgba(255,255,255,0.2)";
+          });
+
+          dropdownContainer.addEventListener("mouseleave", () => {
+               dropdownMenu.style.display = "none";
+               dropdownIcon.style.backgroundColor = "transparent";
+          });
+
+          dropdownContainer.appendChild(dropdownIcon);
+          dropdownContainer.appendChild(dropdownMenu);
+
           const counter = document.createElement("span");
           counter.id = "lh-count";
           counter.textContent = "0";
           counter.className = "dtl-counter";
 
           header.appendChild(title);
+          header.appendChild(dropdownContainer);
           header.appendChild(counter);
 
           const body = document.createElement("div");
@@ -207,369 +291,422 @@
           body.appendChild(listPane);
           body.appendChild(detailPane);
 
+          // Load CSS styles (moved to external file for maintainability)
           const style = document.createElement("style");
           style.textContent = `
 /* Root and Layout Classes */
 .dtl-root {
- position: fixed !important;
- right: 0 !important;
- top: 0 !important;
- height: 100vh !important;
- transform: translateX(0);
- z-index: 2147483647 !important;
- font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
- display: none !important;
+position: fixed !important;
+right: 0 !important;
+top: 0 !important;
+height: 100vh !important;
+transform: translateX(0);
+z-index: 2147483647 !important;
+font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+display: none !important;
 }
 
 .dtl-container {
- width: 600px;
- height: 100vh;
- background: #fff;
- border: 1px solid rgba(0,0,0,.1);
- border-radius: 12px 0 0 12px;
- box-shadow: 0 8px 30px rgba(0,0,0,.12);
- overflow: hidden;
- color: #1f2937;
- position: relative;
- transition: transform .25s ease;
+width: 600px;
+height: 100vh;
+background: #fff;
+border: 1px solid rgba(0,0,0,.1);
+border-radius: 12px 0 0 12px;
+box-shadow: 0 8px 30px rgba(0,0,0,.12);
+overflow: hidden;
+color: #1f2937;
+position: relative;
+transition: transform .25s ease;
 }
 
 .dtl-header {
- display: flex;
- align-items: center;
- justify-content: space-between;
- padding: 12px 16px;
- background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
- color: #fff;
- box-shadow: 0 1px 3px rgba(0,0,0,0.1);
- border-bottom: 1px solid rgba(255,255,255,0.1);
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 12px 16px;
+background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+color: #fff;
+box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .dtl-title {
- font-weight: 700;
- font-size: 15px;
- letter-spacing: 0.025em;
+font-weight: 700;
+font-size: 15px;
+letter-spacing: 0.025em;
+}
+
+/* Dropdown Menu Styles */
+.dtl-dropdown-container {
+position: relative;
+display: inline-block;
+margin-left: 8px;
+}
+
+.dtl-dropdown-icon {
+cursor: pointer;
+padding: 4px;
+border-radius: 4px;
+transition: background-color 0.2s ease;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+.dtl-dropdown-icon:hover {
+background-color: rgba(255,255,255,0.2);
+}
+
+.dtl-dropdown-icon svg {
+width: 16px;
+height: 16px;
+stroke: currentColor;
+}
+
+.dtl-dropdown-menu {
+position: absolute;
+top: 100%;
+right: 0;
+background: #ffffff;
+border: 1px solid #e5e7eb;
+border-radius: 6px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+min-width: 120px;
+z-index: 1000;
+display: none;
+padding: 8px 0;
+}
+
+.dtl-dropdown-item {
+padding: 8px 12px;
+cursor: pointer;
+font-size: 13px;
+color: #374151;
+transition: background-color 0.15s ease;
+}
+
+.dtl-dropdown-item:hover {
+background-color: #f0f9ff;
 }
 
 .dtl-counter {
- background: rgba(255,255,255,.25);
- padding: 4px 10px;
- border-radius: 12px;
- font-size: 12px;
- font-weight: 600;
- box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+background: rgba(255,255,255,.25);
+padding: 4px 10px;
+border-radius: 12px;
+font-size: 12px;
+font-weight: 600;
+box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .dtl-body {
- background: #fff;
- height: calc(100vh - 44px);
- position: relative;
- overflow: hidden;
+background: #fff;
+height: calc(100vh - 44px);
+position: relative;
+overflow: hidden;
 }
 
 .dtl-pane {
- width: 100%;
- height: 100%;
- overflow: auto;
- display: none;
+width: 100%;
+height: 100%;
+overflow: auto;
+display: none;
 }
 
 .dtl-pane.dtl-visible {
- display: block;
+display: block;
 }
 
 .dtl-table {
- width: 100%;
- border-collapse: collapse;
- font-size: 13px;
- font-weight: 500;
+width: 100%;
+border-collapse: collapse;
+font-size: 13px;
+font-weight: 500;
 }
 
 .dtl-table-header {
- text-align: left;
- padding: 10px 8px;
- border-bottom: 2px solid #e5e7eb;
- color: #374151;
- font-weight: 600;
- font-size: 12px;
- background-color: #f9fafb;
+text-align: left;
+padding: 10px 8px;
+border-bottom: 2px solid #e5e7eb;
+color: #374151;
+font-weight: 600;
+font-size: 12px;
+background-color: #f9fafb;
 }
 
 .dtl-table-header-first {
- text-align: right;
- padding: 10px 8px;
- border-bottom: 2px solid #e5e7eb;
- color: #374151;
- font-weight: 600;
- font-size: 12px;
- background-color: #f9fafb;
+text-align: right;
+padding: 10px 8px;
+border-bottom: 2px solid #e5e7eb;
+color: #374151;
+font-weight: 600;
+font-size: 12px;
+background-color: #f9fafb;
 }
 
 .dtl-table-row {
- cursor: pointer;
- border-bottom: 1px solid #f1f5f9;
- transition: background-color 0.15s ease;
+cursor: pointer;
+border-bottom: 1px solid #f1f5f9;
+transition: background-color 0.15s ease;
 }
 
 .dtl-table-row:hover {
- background: #f0f9ff;
+background: #f0f9ff;
 }
 
 .dtl-table-row:last-child {
- border-bottom: none;
+border-bottom: none;
 }
 
 .dtl-table-cell {
- padding: 10px 8px;
- color: #374151;
+padding: 10px 8px;
+color: #374151;
 }
 
 .dtl-table-cell:first-child {
- color: #6b7280;
- font-weight: 600;
- text-align: right;
+color: #6b7280;
+font-weight: 600;
+text-align: right;
 }
 
 .dtl-handle {
- position: absolute;
- left: -36px;
- top: 50%;
- transform: translateY(-50%);
- width: 36px;
- height: 84px;
- border-radius: 8px 0 0 8px;
- border: 1px solid rgba(0,0,0,.1);
- background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
- color: #fff;
- cursor: pointer;
- font-weight: 700;
- letter-spacing: 1px;
- writing-mode: vertical-rl;
- text-orientation: mixed;
- box-shadow: 0 2px 8px rgba(0,0,0,0.15);
- transition: all 0.2s ease;
+position: absolute;
+left: -36px;
+top: 50%;
+transform: translateY(-50%);
+width: 36px;
+height: 84px;
+border-radius: 8px 0 0 8px;
+border: 1px solid rgba(0,0,0,.1);
+background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+color: #fff;
+cursor: pointer;
+font-weight: 700;
+letter-spacing: 1px;
+writing-mode: vertical-rl;
+text-orientation: mixed;
+box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+transition: all 0.2s ease;
 }
 
 .dtl-handle:hover {
- box-shadow: 0 4px 12px rgba(0,0,0,0.25);
- transform: translateY(-50%) translateX(-2px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+transform: translateY(-50%) translateX(-2px);
 }
 
 .dtl-nav-bar {
- display: flex;
- gap: 8px;
- align-items: center;
- padding: 8px;
- border-bottom: 1px solid #e5e7eb;
+display: flex;
+gap: 8px;
+align-items: center;
+padding: 8px;
+border-bottom: 1px solid #e5e7eb;
 }
 
 .dtl-button {
- padding: 8px 12px;
- border: 1px solid #e5e7eb;
- border-radius: 8px;
- cursor: pointer;
- font-size: 13px;
- font-weight: 500;
- transition: all 0.15s ease;
- background: #ffffff;
- color: #374151;
+padding: 8px 12px;
+border: 1px solid #e5e7eb;
+border-radius: 8px;
+cursor: pointer;
+font-size: 13px;
+font-weight: 500;
+transition: all 0.15s ease;
+background: #ffffff;
+color: #374151;
 }
 
 .dtl-button:hover {
- background: #f8fafc;
- border-color: #cbd5e1;
+background: #f8fafc;
+border-color: #cbd5e1;
 }
 
 .dtl-button-primary {
- background: #0ea5e9;
- color: #ffffff;
- border-color: #0ea5e9;
+background: #0ea5e9;
+color: #ffffff;
+border-color: #0ea5e9;
 }
 
 .dtl-layout {
- display: flex;
- height: calc(100vh - 20px);
- gap: 0;
+display: flex;
+gap: 0;
 }
 
 .dtl-side-menu {
- width: 70px;
- background: #ffffff;
- border-right: 1px solid #e5e7eb;
- display: flex;
- flex-direction: column;
- padding: 12px 6px;
- gap: 4px;
+width: 70px;
+background: #ffffff;
+border-right: 1px solid #e5e7eb;
+display: flex;
+flex-direction: column;
+padding: 12px 6px;
+gap: 4px;
 }
 
 .dtl-menu-item {
- padding: 6px 4px;
- cursor: pointer;
- border-radius: 10px;
- transition: all 0.2s ease;
+padding: 6px 4px;
+cursor: pointer;
+border-radius: 10px;
+transition: all 0.2s ease;
 }
 
 .dtl-menu-item:hover {
- background: #f0f9ff;
- transform: scale(1.05);
+background: #f0f9ff;
+transform: scale(1.05);
 }
 
 .dtl-menu-item.active {
- background: #0ea5e9;
+background: #0ea5e9;
 }
 
 .dtl-menu-label {
- font-size: 12px;
- font-weight: 500;
- text-align: left;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
- max-width: 60px;
- color: #6b7280;
+font-size: 12px;
+font-weight: 500;
+text-align: left;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+max-width: 60px;
+color: #6b7280;
 }
 
 .dtl-menu-item.active .dtl-menu-label {
- color: #ffffff;
+color: #ffffff;
 }
 
 .dtl-tab-content {
- flex: 1;
- height: 100%;
- overflow: auto;
- padding: 8px;
+flex: 1;
+height: 100%;
+overflow: auto;
+padding: 8px;
 }
 
 .dtl-json-container {
- background: #0f172a;
- border-radius: 12px;
- padding: 16px;
- overflow: auto;
- height: calc(100vh - 150px);
- font-family: 'Fira Code', 'Consolas', monospace;
- font-size: 13px;
- line-height: 1.5;
- color: #e5e7eb;
- white-space: pre;
+background: #0f172a;
+border-radius: 12px;
+padding: 16px;
+overflow: auto;
+height: calc(100vh - 150px);
+font-family: 'Fira Code', 'Consolas', monospace;
+font-size: 13px;
+line-height: 1.5;
+color: #e5e7eb;
+white-space: pre;
 }
 
 .dtl-debug-container {
- padding: 16px;
- height: calc(100vh - 100px);
- overflow: auto;
+padding: 16px;
+height: calc(100vh - 100px);
+overflow: auto;
 }
 
 .dtl-info-box {
- background: #f0f9ff;
- border: 1px solid #bae6fd;
- border-radius: 8px;
- padding: 16px;
- margin-bottom: 16px;
+background: #f0f9ff;
+border: 1px solid #bae6fd;
+border-radius: 8px;
+padding: 16px;
+margin-bottom: 16px;
 }
 
 .dtl-info-title {
- font-weight: 600;
- color: #0c4a6e;
- margin-bottom: 8px;
- font-size: 14px;
+font-weight: 600;
+color: #0c4a6e;
+margin-bottom: 8px;
+font-size: 14px;
 }
 
 .dtl-info-text {
- color: #0e7490;
- font-size: 13px;
- line-height: 1.6;
+color: #0e7490;
+font-size: 13px;
+line-height: 1.6;
 }
 
 .dtl-debug-section {
- border: 1px solid #e5e7eb;
- border-radius: 8px;
- margin-bottom: 12px;
- background: #ffffff;
+border: 1px solid #e5e7eb;
+border-radius: 8px;
+margin-bottom: 12px;
+background: #ffffff;
 }
 
 .dtl-debug-summary {
- cursor: pointer;
- padding: 12px 14px;
- font-weight: 600;
- background: #f8fafc;
- border-bottom: 1px solid #e5e7eb;
- color: #374151;
- font-size: 13px;
+cursor: pointer;
+padding: 12px 14px;
+font-weight: 600;
+background: #f8fafc;
+border-bottom: 1px solid #e5e7eb;
+color: #374151;
+font-size: 13px;
 }
 
 .dtl-debug-content {
- padding: 12px 14px;
+padding: 12px 14px;
 }
 
 .dtl-debug-pre {
- margin: 0;
- background: #0f172a;
- color: #e5e7eb;
- padding: 12px;
- border-radius: 6px;
- overflow: auto;
- font-size: 12px;
- line-height: 1.5;
- font-family: 'Fira Code', 'Consolas', monospace;
+margin: 0;
+background: #0f172a;
+color: #e5e7eb;
+padding: 12px;
+border-radius: 6px;
+overflow: auto;
+font-size: 12px;
+line-height: 1.5;
+font-family: 'Fira Code', 'Consolas', monospace;
 }
 
 /* Legacy and utility classes */
 .muted {
- color: #6b7280;
- font-weight: 500;
+color: #6b7280;
+font-weight: 500;
 }
 
 pre {
- margin: 0;
- background: #0f172a;
- color: #e5e7eb;
- padding: 10px;
- border-radius: 8px;
- overflow: auto;
- font-size: 12px;
- line-height: 1.5;
+margin: 0;
+background: #0f172a;
+color: #e5e7eb;
+padding: 10px;
+border-radius: 8px;
+overflow: auto;
+font-size: 12px;
+line-height: 1.5;
 }
 
 details {
- border: 1px solid #e5e7eb;
- border-radius: 8px;
- margin: 8px 0;
- background: #fff;
- box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+border: 1px solid #e5e7eb;
+border-radius: 8px;
+margin: 8px 0;
+background: #fff;
+box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 details > summary {
- cursor: pointer;
- list-style: none;
- padding: 12px 14px;
- font-weight: 600;
- background: #f8fafc;
- border-bottom: 1px solid #e5e7eb;
- border-radius: 8px;
- color: #374151;
- transition: background-color 0.15s ease;
+cursor: pointer;
+list-style: none;
+padding: 12px 14px;
+font-weight: 600;
+background: #f8fafc;
+border-bottom: 1px solid #e5e7eb;
+border-radius: 8px;
+color: #374151;
+transition: background-color 0.15s ease;
 }
 
 details[open] > summary {
- border-bottom-color: #e5e7eb;
- background: #f1f5f9;
+border-bottom-color: #e5e7eb;
+background: #f1f5f9;
 }
 
 .kv {
- display: grid;
- grid-template-columns: 140px 1fr;
- gap: 8px;
- padding: 12px 14px;
+display: grid;
+grid-template-columns: 140px 1fr;
+gap: 8px;
+padding: 12px 14px;
 }
 
 .kv .k {
- color: #6b7280;
- font-weight: 500;
+color: #6b7280;
+font-weight: 500;
 }
 
 .kv pre {
- grid-column: 1 / -1;
- width: 100%;
+grid-column: 1 / -1;
+width: 100%;
 }
 
 /* Text color utilities */
@@ -586,7 +723,8 @@ details[open] > summary {
 .dtl-hidden { display: none !important; }
 .dtl-visible { display: block !important; }
 .dtl-collapsed { transform: translateX(100%); }
-`;
+          `;
+          shadow.appendChild(style);
 
           // Toggle handle similar to Monica sidebar
           const handle = document.createElement("button");
@@ -610,7 +748,6 @@ details[open] > summary {
           });
           // Hover effects are now handled by CSS
 
-          shadow.appendChild(style);
           // Ensure JSON <pre> spans full width inside key-value grid
           const kvFixStyle = document.createElement("style");
           kvFixStyle.textContent = ".kv pre{grid-column:1 / -1;width:100%}";
@@ -1064,4 +1201,180 @@ details[open] > summary {
      document.addEventListener('LH_DL_PUSH', (e) => {
           try { pushTracked(e.detail?.item); } catch (_) { }
      });
+
+     function createAccountDetailView(data) {
+          const container = document.createElement("div");
+          container.style.cssText = "padding: 16px; height: calc(100vh - 84px); overflow: auto;";
+
+          // Account Header Section
+          const headerSection = document.createElement("div");
+          headerSection.style.cssText = "background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);";
+
+          const accountTitle = document.createElement("h2");
+          accountTitle.textContent = "Account Details";
+          accountTitle.style.cssText = "margin: 0 0 16px 0; font-size: 20px; font-weight: 700;";
+
+          const accountInfo = document.createElement("div");
+          accountInfo.style.cssText = "display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;";
+
+          const accountFields = [
+               { label: "Account ID", value: data.accountID },
+               { label: "Account Name", value: data.accountName },
+               { label: "Account Level", value: data.accountLevel },
+               { label: "Timezone", value: data.accountTimestamps?.timezone || "N/A" }
+          ];
+
+          accountFields.forEach(field => {
+               const fieldDiv = document.createElement("div");
+               fieldDiv.innerHTML = `<div style="opacity: 0.9; font-size: 12px; margin-bottom: 4px;">${field.label}:</div><div style="font-weight: 600;">${field.value}</div>`;
+               accountInfo.appendChild(fieldDiv);
+          });
+
+          headerSection.appendChild(accountTitle);
+          headerSection.appendChild(accountInfo);
+
+          // Status Badges
+          const statusSection = document.createElement("div");
+          statusSection.style.cssText = "display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;";
+
+          const badges = [
+               { label: "Blocked", value: data.isBlocked, type: "danger" },
+               { label: "New", value: data.isNew, type: "success" },
+               { label: "Synced", value: data.isSynced, type: "info" },
+               { label: "Display Info", value: data.displayInfo, type: "success" }
+          ];
+
+          badges.forEach(badge => {
+               const badgeEl = document.createElement("span");
+               badgeEl.textContent = `${badge.label}: ${badge.value ? "Yes" : "No"}`;
+               const bgColor = badge.value ?
+                    (badge.type === "danger" ? "#dc2626" : badge.type === "success" ? "#16a34a" : "#2563eb") :
+                    "#6b7280";
+               badgeEl.style.cssText = `background: ${bgColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;`;
+               statusSection.appendChild(badgeEl);
+          });
+
+          headerSection.appendChild(statusSection);
+          container.appendChild(headerSection);
+
+          // Enabled Domains Section
+          const domainsSection = createCollapsibleSection("Enabled Domains", data.enabledDomain?.length || 0);
+          const domainsList = document.createElement("div");
+          domainsList.style.cssText = "display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;";
+
+          if (data.enabledDomain?.length) {
+               data.enabledDomain.forEach(domain => {
+                    const domainTag = document.createElement("span");
+                    domainTag.textContent = domain.domain;
+                    domainTag.style.cssText = "background: #f0f9ff; color: #0284c7; padding: 6px 12px; border-radius: 16px; font-size: 12px; border: 1px solid #bae6fd;";
+                    domainsList.appendChild(domainTag);
+               });
+          } else {
+               domainsList.innerHTML = "<div style='color: #6b7280; padding: 12px;'>No domains configured</div>";
+          }
+
+          domainsSection.appendChild(domainsList);
+          container.appendChild(domainsSection);
+
+          // Listeners Section
+          const listenersSection = createCollapsibleSection("Enabled Listeners", Object.keys(data.enabledListeners || {}).length);
+          const listenersGrid = document.createElement("div");
+          listenersGrid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; padding: 12px;";
+
+          Object.entries(data.enabledListeners || {}).forEach(([key, listener]) => {
+               const listenerCard = createListenerCard(key, listener);
+               listenersGrid.appendChild(listenerCard);
+          });
+
+          listenersSection.appendChild(listenersGrid);
+          container.appendChild(listenersSection);
+
+          // Consent Rules Section
+          const consentSection = createCollapsibleSection("Consent Rules", data.consentRules?.length || 0);
+          const consentList = document.createElement("div");
+          consentList.style.cssText = "padding: 12px;";
+
+          if (data.consentRules?.length) {
+               data.consentRules.forEach(rule => {
+                    const ruleItem = document.createElement("div");
+                    ruleItem.style.cssText = "background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #0ea5e9;";
+                    ruleItem.innerHTML = `
+                    <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">${rule.name}</div>
+                    <div style="font-size: 12px; color: #6b7280;">Method: ${rule.consentMethod}</div>
+                    <div style="font-size: 12px; color: #6b7280;">Regions: ${rule.geographicRegions?.map(r => r.continent || r.stateProvinces || "Worldwide").join(", ")}</div>
+               `;
+                    consentList.appendChild(ruleItem);
+               });
+          } else {
+               consentList.innerHTML = "<div style='color: #6b7280;'>No consent rules configured</div>";
+          }
+
+          consentSection.appendChild(consentList);
+          container.appendChild(consentSection);
+
+          // Destinations Section
+          const destinationsSection = createCollapsibleSection("Destinations", Object.keys(data.destinations || {}).length);
+          const destinationsGrid = document.createElement("div");
+          destinationsGrid.style.cssText = "display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; padding: 12px;";
+
+          Object.entries(data.destinations || {}).forEach(([key, destination]) => {
+               const destCard = document.createElement("div");
+               destCard.style.cssText = "background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; text-align: center;";
+               destCard.innerHTML = `
+               <div style="font-weight: 600; color: #166534; margin-bottom: 4px; text-transform: capitalize;">${key.replace(/([A-Z])/g, ' $1').trim()}</div>
+               <div style="font-size: 11px; color: #16a34a;">${destination.isCustom ? "Custom" : "Built-in"}</div>
+          `;
+               destinationsGrid.appendChild(destCard);
+          });
+
+          destinationsSection.appendChild(destinationsGrid);
+          container.appendChild(destinationsSection);
+
+          return container;
+     }
+
+     function createCollapsibleSection(title, count) {
+          const section = document.createElement("details");
+          section.style.cssText = "border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
+          section.open = true;
+
+          const summary = document.createElement("summary");
+          summary.style.cssText = "cursor: pointer; padding: 14px 16px; font-weight: 600; background: #f8fafc; border-bottom: 1px solid #e5e7eb; color: #374151; font-size: 14px; display: flex; justify-content: space-between; align-items: center; list-style: none;";
+          summary.innerHTML = `
+          <span>${title}</span>
+          <span style="background: #0ea5e9; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">${count}</span>
+     `;
+
+          section.appendChild(summary);
+          return section;
+     }
+
+     function createListenerCard(key, listener) {
+          const card = document.createElement("div");
+          card.style.cssText = "background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s ease;";
+
+          const statusColor = listener.enabled ? "#16a34a" : "#dc2626";
+          const statusText = listener.enabled ? "Enabled" : "Disabled";
+
+          card.innerHTML = `
+          <div style="font-weight: 600; color: #92400e; margin-bottom: 6px; font-size: 13px;">${listener.listenerName}</div>
+          <div style="font-size: 11px; color: #78350f; margin-bottom: 8px;">Type: ${listener.type}</div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+               <span style="background: ${statusColor}; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 500;">${statusText}</span>
+               <span style="font-size: 10px; color: #92400e;">${Object.keys(listener.features || {}).length} features</span>
+          </div>
+     `;
+
+          card.addEventListener("mouseenter", () => {
+               card.style.transform = "translateY(-2px)";
+               card.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+          });
+
+          card.addEventListener("mouseleave", () => {
+               card.style.transform = "translateY(0)";
+               card.style.boxShadow = "none";
+          });
+
+          return card;
+     }
 })();

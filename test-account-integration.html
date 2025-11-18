@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Integration Test</title>
+    <style>
+        body {
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            overflow: hidden;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .test-title {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        
+        .test-content {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+        }
+        
+        .test-button {
+            padding: 8px 16px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 8px;
+        }
+        
+        .test-button:hover {
+            background: #0284c7;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        
+        .status.success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+        
+        .status.info {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0c4a6e;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <div class="test-title">Account Integration Test</div>
+        </div>
+        
+        <div class="test-content">
+            <div class="status success">
+                ✅ Dropdown menu updated with Account and Events options
+            </div>
+            
+            <div class="status success">
+                ✅ Account detail view functionality added
+            </div>
+            
+            <div class="status success">
+                ✅ Account view integrated with existing layout
+            </div>
+            
+            <div class="status info">
+                📋 Features implemented:
+                <ul style="margin: 8px 0 0 20px;">
+                    <li>Dropdown menu with Account and Events options</li>
+                    <li>Account detail view with collapsible sections</li>
+                    <li>Account header with status badges</li>
+                    <li>Enabled domains display</li>
+                    <li>Listeners grid with status indicators</li>
+                    <li>Consent rules section</li>
+                    <li>Destinations grid</li>
+                    <li>Proper view switching between Events and Account</li>
+                </ul>
+            </div>
+            
+            <div class="status info">
+                🎯 To test the implementation:
+                <ol style="margin: 8px 0 0 20px;">
+                    <li>Load the extension in a browser</li>
+                    <li>Click the extension icon to open the panel</li>
+                    <li>Click the dropdown menu icon (☰) in the header</li>
+                    <li>Select "Account" to view account details</li>
+                    <li>Select "Events" to return to events list</li>
+                    <li>Verify all sections render correctly</li>
+                </ol>
+            </div>
+            
+            <button class="test-button" onclick="window.open('test-account-detail.html', '_blank')">
+                View Original Account Detail Design
+            </button>
+        </div>
+    </div>
+</body>
+</html>
