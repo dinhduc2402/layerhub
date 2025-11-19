@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Loading Test</title>
+</head>
+<body>
+    <h1>CSS Loading Test</h1>
+    <p>This page tests if the CSS is loaded correctly in the shadow DOM.</p>
+    
+    <div id="test-container"></div>
+    
+    <script>
+        // Simulate the shadow DOM creation from content.js
+        const mount = document.createElement("div");
+        mount.id = "lh-dl-root";
+        mount.className = "dtl-root";
+        mount.style.all = "initial";
+        mount.style.position = "fixed";
+        mount.style.right = "0";
+        mount.style.top = "0";
+        mount.style.height = "100vh";
+        mount.style.transform = "translateX(0)";
+        mount.style.zIndex = "2147483647";
+        mount.style.fontFamily = "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+        
+        const shadow = mount.attachShadow({ mode: "open" });
+        
+        // Load CSS styles from external file
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.type = "text/css";
+        // For testing purposes, we'll use a relative path
+        link.href = "styles.css";
+        shadow.appendChild(link);
+        
+        const container = document.createElement("div");
+        container.setAttribute("part", "container");
+        container.className = "dtl-container";
+        
+        const header = document.createElement("div");
+        header.className = "dtl-header";
+        
+        const title = document.createElement("div");
+        title.id = "lh-title";
+        title.textContent = "LayerHub Datalayer";
+        title.className = "dtl-title";
+        
+        header.appendChild(title);
+        container.appendChild(header);
+        shadow.appendChild(container);
+        
+        document.getElementById("test-container").appendChild(mount);
+        
+        // Check if styles are applied
+        setTimeout(() => {
+            const computedStyle = window.getComputedStyle(shadow.querySelector('.dtl-header'));
+            console.log('Header background color:', computedStyle.background);
+            console.log('Header color:', computedStyle.color);
+            
+            // Display results on the page
+            const results = document.createElement("div");
+            results.innerHTML = `
+                <h2>CSS Loading Results:</h2>
+                <p>Header background: ${computedStyle.background}</p>
+                <p>Header color: ${computedStyle.color}</p>
+                <p>If you see blue gradient background and white text, CSS is loaded correctly!</p>
+            `;
+            document.body.appendChild(results);
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -106,6 +106,34 @@
       } catch (_) { }
     });
 
+    // Read account data from window variables and push to extension
+    function emitAccountData() {
+      try {
+        // Try to get account data from various possible window variables
+        let accountData = null;
+
+        // Check if Listenlayer exists and has getAccount method
+        if (window.Listenlayer && typeof window.Listenlayer.getAccount === 'function') {
+          accountData = window.Listenlayer.getAccount();
+        }
+
+        // Emit account data if found
+        if (accountData) {
+          emit('LH_DL_ACCOUNT_DATA', { accountData: sanitize(accountData) });
+        }
+      } catch (e) {
+        console.error('Error emitting account data:', e);
+      }
+    }
+
+    // Emit account data immediately and also when requested
+    emitAccountData();
+
+    // Listen for account data requests
+    document.addEventListener('LH_DL_REQUEST_ACCOUNT', () => {
+      emitAccountData();
+    });
+
     // Signal that the hook is ready in the MAIN world
     try { emit('LH_DL_READY', { ready: true }); } catch (_) { }
   } catch (e) { }
