@@ -26,7 +26,19 @@
      }).catch(err => console.error('Failed to load account module:', err));
 
      function buildAccountView(data) {
-          window.createAccountDetailView = window.createAccountDetailView(data);
+          window.accountDetailViewElement = window.createAccountDetailView(data);
+
+          // If account view is currently visible, update it immediately
+          if (currentMainView === "account") {
+               const root = ensurePanel();
+               const detailPane = root.shadowRoot.getElementById("lh-detail");
+               if (detailPane) {
+                    detailPane.innerHTML = "";
+                    if (window.accountDetailViewElement) {
+                         detailPane.appendChild(window.accountDetailViewElement);
+                    }
+               }
+          }
      }
 
      function nowTimeString(ts) {
@@ -87,14 +99,23 @@
 
           // Render account detail view
           detailPane.innerHTML = "";
-          detailPane.appendChild(window.createAccountDetailView);
+          if (window.accountDetailViewElement) {
+               detailPane.appendChild(window.accountDetailViewElement);
+          } else {
+               // Show loading state initially
+               const loadingMsg = document.createElement("div");
+               loadingMsg.id = "lh-account-loading";
+               loadingMsg.style.cssText = "text-align: center; padding: 40px; color: #6b7280; font-size: 16px;";
+               loadingMsg.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                    <div style="font-weight: 600; margin-bottom: 8px;">Loading Account Data...</div>
+                    <div style="font-size: 14px;">Please wait while we retrieve your account information.</div>
+               `;
+               detailPane.appendChild(loadingMsg);
+          }
      }
 
      function showEventsView() {
-          const root = ensurePanel();
-          const listPane = root.shadowRoot.getElementById("lh-list");
-          const detailPane = root.shadowRoot.getElementById("lh-detail");
-          const title = root.shadowRoot.getElementById("lh-title");
           currentMainView = "events";
           showListView();
      }
@@ -116,44 +137,6 @@
                          cls = 'text-gray-500 italic'; // null
                     } else {
                          cls = 'text-orange-400'; // numbers
-                    }
-                    return '<span class="' + cls + '">' + match + '</span>';
-               })
-               .replace(/([\[\]{},])/g, '<span class="text-gray-500">$1</span>');
-     }
-
-     function highlightSearchResults(container, searchTerm) {
-          if (!searchTerm) {
-               container.innerHTML = container.textContent.replace(/<[^>]*>/g, '');
-               const formattedJson = formatJsonWithSyntax(selectedItem);
-               container.innerHTML = formattedJson;
-               return;
-          }
-
-          let text = container.textContent;
-          let highlightedText = text;
-
-          // Find all occurrences of the search term
-          const regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-          highlightedText = highlightedText.replace(regex, '<mark style="background: #fbbf24; color: #000; padding: 1px 2px; border-radius: 2px;">$1</mark>');
-
-          // Re-apply syntax highlighting while preserving search highlights
-          container.innerHTML = highlightedText
-               .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                    if (match.includes('<mark>')) return match; // Skip if already highlighted
-                    let cls = 'text-gray-300';
-                    if (/^"/.test(match)) {
-                         if (/:$/.test(match)) {
-                              cls = 'text-purple-400 font-semibold';
-                         } else {
-                              cls = 'text-green-400';
-                         }
-                    } else if (/true|false/.test(match)) {
-                         cls = 'text-blue-400';
-                    } else if (/null/.test(match)) {
-                         cls = 'text-gray-500 italic';
-                    } else {
-                         cls = 'text-orange-400';
                     }
                     return '<span class="' + cls + '">' + match + '</span>';
                })
@@ -219,7 +202,16 @@
 
           // Create dropdown menu items
           const menuItems = [
-               { text: "Account", action: () => showAccountView() },
+               {
+                    text: "Account", action: () => {
+                         // Request account data before showing the view
+                         try {
+                              document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_ACCOUNT'));
+                              // Show the view immediately, it will be updated when data arrives
+                              showAccountView();
+                         } catch (_) { }
+                    }
+               },
                { text: "Events", action: () => showEventsView() }
           ];
 
@@ -252,14 +244,14 @@
           dropdownContainer.appendChild(dropdownIcon);
           dropdownContainer.appendChild(dropdownMenu);
 
-          const counter = document.createElement("span");
-          counter.id = "lh-count";
-          counter.textContent = "0";
-          counter.className = "dtl-counter";
+          // const counter = document.createElement("span");
+          // counter.id = "lh-count";
+          // counter.textContent = "0";
+          // counter.className = "dtl-counter";
 
           header.appendChild(title);
           header.appendChild(dropdownContainer);
-          header.appendChild(counter);
+          // header.appendChild(counter);
 
           const body = document.createElement("div");
           body.className = "dtl-body";
@@ -352,8 +344,8 @@
      function render() {
           const root = ensurePanel();
           const tbody = root.shadowRoot.getElementById("lh-tbody");
-          const counter = root.shadowRoot.getElementById("lh-count");
-          counter.textContent = String(trackedItems.length);
+          // const counter = root.shadowRoot.getElementById("lh-count");
+          // counter.textContent = String(trackedItems.length);
           tbody.innerHTML = "";
           for (let i = trackedItems.length - 1; i >= 0; i--) {
                const it = trackedItems[i];
@@ -631,6 +623,11 @@
           infoBox.appendChild(infoText);
           debugContainer.appendChild(infoBox);
 
+          // Event Structure Validation Section
+          const structureValidation = checkEventStructure(s);
+          const validationSection = createStructureValidationSection(structureValidation);
+          debugContainer.appendChild(validationSection);
+
           // Event Location Section
           if (s.eventLocation) {
                const section = createDebugSection("📍 Event Location", s.eventLocation);
@@ -692,6 +689,230 @@
           section.appendChild(content);
 
           return section;
+     }
+
+     function createStructureValidationSection(validation) {
+          const section = document.createElement("details");
+          section.className = "dtl-debug-section";
+          section.open = true;
+
+          const summary = document.createElement("summary");
+          summary.className = "dtl-debug-summary";
+
+          // Create summary with validation status
+          const statusIcon = validation.isValid ? "✅" : "⚠️";
+          const completenessText = `${validation.completeness}% Complete`;
+          summary.innerHTML = `${statusIcon} Event Structure Validation - ${completenessText}`;
+
+          const content = document.createElement("div");
+          content.className = "dtl-debug-content";
+
+          // Event name and overall status
+          const headerDiv = document.createElement("div");
+          headerDiv.style.cssText = "margin-bottom: 16px; padding: 12px; border-radius: 6px; background: #f8fafc;";
+          headerDiv.innerHTML = `
+               <div style="font-weight: 600; margin-bottom: 4px;">Event: <span style="color: #0ea5e9;">${validation.eventName}</span></div>
+               <div style="display: flex; gap: 12px; font-size: 13px;">
+                    <span>Status: <span style="color: ${validation.isValid ? '#16a34a' : '#dc2626'}; font-weight: 600;">${validation.isValid ? 'Valid' : 'Invalid'}</span></span>
+                    <span>Completeness: <span style="color: #0ea5e9; font-weight: 600;">${validation.completeness}%</span></span>
+                    <span>Total Properties: <span style="color: #6b7280;">${validation.totalProperties}</span></span>
+               </div>
+          `;
+          content.appendChild(headerDiv);
+
+          // Required properties section
+          if (validation.structure.required.length > 0) {
+               const requiredDiv = document.createElement("div");
+               requiredDiv.style.cssText = "margin-bottom: 12px;";
+
+               const requiredTitle = document.createElement("div");
+               requiredTitle.style.cssText = "font-weight: 600; margin-bottom: 6px; color: #374151;";
+               requiredTitle.textContent = "Required Properties:";
+               requiredDiv.appendChild(requiredTitle);
+
+               const requiredList = document.createElement("div");
+               requiredList.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px;";
+
+               validation.structure.required.forEach(prop => {
+                    const propTag = document.createElement("span");
+                    const isPresent = validation.presentRequired.includes(prop);
+                    propTag.style.cssText = `
+                         padding: 4px 8px;
+                         border-radius: 4px;
+                         font-size: 12px;
+                         font-weight: 500;
+                         background: ${isPresent ? '#dcfce7' : '#fee2e2'};
+                         color: ${isPresent ? '#166534' : '#991b1b'};
+                         border: 1px solid ${isPresent ? '#bbf7d0' : '#fecaca'};
+                    `;
+                    propTag.textContent = `${isPresent ? '✓' : '✗'} ${prop}`;
+                    requiredList.appendChild(propTag);
+               });
+
+               requiredDiv.appendChild(requiredList);
+               content.appendChild(requiredDiv);
+          }
+
+          // Optional properties section
+          if (validation.structure.optional.length > 0) {
+               const optionalDiv = document.createElement("div");
+               optionalDiv.style.cssText = "margin-bottom: 12px;";
+
+               const optionalTitle = document.createElement("div");
+               optionalTitle.style.cssText = "font-weight: 600; margin-bottom: 6px; color: #374151;";
+               optionalTitle.textContent = "Optional Properties:";
+               optionalDiv.appendChild(optionalTitle);
+
+               const optionalList = document.createElement("div");
+               optionalList.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px;";
+
+               validation.structure.optional.forEach(prop => {
+                    const propTag = document.createElement("span");
+                    const isPresent = validation.presentOptional.includes(prop);
+                    propTag.style.cssText = `
+                         padding: 4px 8px;
+                         border-radius: 4px;
+                         font-size: 12px;
+                         font-weight: 500;
+                         background: ${isPresent ? '#f0f9ff' : '#f9fafb'};
+                         color: ${isPresent ? '#0284c7' : '#6b7280'};
+                         border: 1px solid ${isPresent ? '#bae6fd' : '#e5e7eb'};
+                    `;
+                    propTag.textContent = `${isPresent ? '✓' : '○'} ${prop}`;
+                    optionalList.appendChild(propTag);
+               });
+
+               optionalDiv.appendChild(optionalList);
+               content.appendChild(optionalDiv);
+          }
+
+          // Unexpected properties section
+          if (validation.unexpectedProperties.length > 0) {
+               const unexpectedDiv = document.createElement("div");
+               unexpectedDiv.style.cssText = "margin-bottom: 12px;";
+
+               const unexpectedTitle = document.createElement("div");
+               unexpectedTitle.style.cssText = "font-weight: 600; margin-bottom: 6px; color: #374151;";
+               unexpectedTitle.textContent = "Unexpected Properties:";
+               unexpectedDiv.appendChild(unexpectedTitle);
+
+               const unexpectedList = document.createElement("div");
+               unexpectedList.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px;";
+
+               validation.unexpectedProperties.forEach(prop => {
+                    const propTag = document.createElement("span");
+                    propTag.style.cssText = `
+                         padding: 4px 8px;
+                         border-radius: 4px;
+                         font-size: 12px;
+                         font-weight: 500;
+                         background: #fef3c7;
+                         color: #92400e;
+                         border: 1px solid #fde68a;
+                    `;
+                    propTag.textContent = `? ${prop}`;
+                    unexpectedList.appendChild(propTag);
+               });
+
+               unexpectedDiv.appendChild(unexpectedList);
+               content.appendChild(unexpectedDiv);
+          }
+
+          // Summary statistics
+          const statsDiv = document.createElement("div");
+          statsDiv.style.cssText = "margin-top: 16px; padding: 12px; border-radius: 6px; background: #f1f5f9; font-size: 13px;";
+          statsDiv.innerHTML = `
+               <div style="font-weight: 600; margin-bottom: 6px;">Summary:</div>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>✓ Required: ${validation.presentRequired.length}/${validation.structure.required.length}</div>
+                    <div>✓ Optional: ${validation.presentOptional.length}/${validation.structure.optional.length}</div>
+                    <div>✗ Missing Required: ${validation.missingRequired.length}</div>
+                    <div>○ Missing Optional: ${validation.missingOptional.length}</div>
+               </div>
+          `;
+          content.appendChild(statsDiv);
+
+          section.appendChild(summary);
+          section.appendChild(content);
+
+          return section;
+     }
+
+     // Function to check if event has enough and correct fixed structures
+     function checkEventStructure(eventData) {
+          if (!eventData || typeof eventData !== 'object') {
+               return {
+                    isValid: false,
+                    error: 'Invalid event data - not an object',
+                    structure: null
+               };
+          }
+
+          // Define expected fixed structure based on event type
+          const expectedStructures = {
+               // Common properties that should be present in most events
+               common: {
+                    required: ['event', 'eventLocation', 'consentType', 'tracking', 'eventTimestamp', 'triggers', 'conversion', 'userDetails'],
+                    optional: ['eventType', 'eventTimestamp', 'eventScope', 'ListenLayer', 'customValues', 'eventID', 'destinations']
+               }
+          };
+
+          // Get event name
+          const eventName = eventData.event || 'unknown';
+          let expectedStructure = expectedStructures.common;
+
+          // Check for AutomaticValues properties (dynamic based on event type)
+          const automaticValuesKey = Object.keys(eventData).find(k => k.endsWith('AutomaticValues'));
+          if (automaticValuesKey && !expectedStructure.optional.includes(automaticValuesKey)) {
+               expectedStructure.required.push(automaticValuesKey);
+          }
+
+          // Validate structure
+          const validation = {
+               eventName: eventName,
+               isValid: true,
+               missingRequired: [],
+               missingOptional: [],
+               presentRequired: [],
+               presentOptional: [],
+               unexpectedProperties: [],
+               structure: expectedStructure,
+               totalProperties: Object.keys(eventData).length
+          };
+
+          // Check required properties
+          expectedStructure.required.forEach(prop => {
+               if (eventData.hasOwnProperty(prop) || (prop === automaticValuesKey && eventData[automaticValuesKey])) {
+                    validation.presentRequired.push(prop);
+               } else {
+                    validation.missingRequired.push(prop);
+                    validation.isValid = false;
+               }
+          });
+
+          // Check optional properties
+          expectedStructure.optional.forEach(prop => {
+               if (eventData.hasOwnProperty(prop)) {
+                    validation.presentOptional.push(prop);
+               } else {
+                    validation.missingOptional.push(prop);
+               }
+          });
+
+          // Check for unexpected properties
+          const allExpected = [...expectedStructure.required, ...expectedStructure.optional];
+          Object.keys(eventData).forEach(prop => {
+               if (!allExpected.includes(prop)) {
+                    validation.unexpectedProperties.push(prop);
+               }
+          });
+
+          // Calculate completeness percentage
+          const totalExpected = expectedStructure.required.length + expectedStructure.optional.length;
+          const totalPresent = validation.presentRequired.length + validation.presentOptional.length;
+          validation.completeness = Math.round((totalPresent / totalExpected) * 100);
+
+          return validation;
      }
 
      function pushTracked(item) {

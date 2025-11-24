@@ -8,9 +8,9 @@
       try { document.dispatchEvent(new CustomEvent(type, { detail })); } catch (_) { }
     }
 
-    // Create a structured-clone-safe copy (no functions/symbols), limited depth
+    // Create a structured-clone-safe copy that only keeps event objects
     function sanitize(value, depth = 0, seen) {
-      const MAX_DEPTH = 6;
+      const MAX_DEPTH = 10;
       if (value == null) return value;
       const t = typeof value;
       if (t === 'string' || t === 'number' || t === 'boolean') return value;
@@ -21,22 +21,43 @@
       if (typeof value === 'object') {
         if (seen.has(value)) return undefined;
         seen.add(value);
+
         if (Array.isArray(value)) {
+          // Only keep array elements that have an "event" property
           const out = [];
           for (let i = 0; i < value.length; i++) {
-            const v = sanitize(value[i], depth + 1, seen);
-            if (v !== undefined) out.push(v);
+            try {
+              const item = value[i];
+              // Check if this item has an "event" property
+              if (item && typeof item === 'object' && 'event' in item) {
+                const v = sanitize(item, depth + 1, seen);
+                out.push(v !== undefined ? v : item);
+              }
+            } catch (error) {
+              console.warn(`Error processing array element at index ${i}:`, error);
+            }
           }
           return out;
         }
-        const out = {};
-        for (const k in value) {
-          try {
-            const v = sanitize(value[k], depth + 1, seen);
-            if (v !== undefined) out[k] = v;
-          } catch (_) { }
+
+        // For non-array objects, check if it has an "event" property
+        if ('event' in value) {
+          // This is an event object, sanitize all its properties
+          const out = {};
+          for (const k in value) {
+            try {
+              const v = sanitize(value[k], depth + 1, seen);
+              out[k] = v !== undefined ? v : value[k];
+            } catch (error) {
+              console.warn(`Error sanitizing property ${k}:`, error);
+              out[k] = `[Error: ${error.message}]`;
+            }
+          }
+          return out;
+        } else {
+          // This is not an event object, return undefined to filter it out
+          return undefined;
         }
-        return out;
       }
       return undefined;
     }
@@ -119,7 +140,7 @@
 
         // Emit account data if found
         if (accountData) {
-          emit('LH_DL_ACCOUNT_DATA', { accountData: sanitize(accountData) });
+          emit('LH_DL_ACCOUNT_DATA', { accountData: accountData });
         }
       } catch (e) {
         console.error('Error emitting account data:', e);
