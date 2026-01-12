@@ -1089,6 +1089,15 @@ function shouldShowEvent(eventName) {
 function pushTracked(item) {
      let formattedItem;
 
+     // Debug logging to see what we're receiving
+     console.log('pushTracked received:', item);
+     console.log('Has properties:', {
+          hasIndex: 'index' in item,
+          hasTime: 'time' in item,
+          hasEventName: 'eventName' in item,
+          hasPayload: 'payload' in item
+     });
+
      // Check if item is already formatted (use 'in' operator to avoid falsy values like 0)
      if ('index' in item && 'time' in item && 'eventName' in item && 'payload' in item) {
           // Item already formatted from background - use its index and update counter

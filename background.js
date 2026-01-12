@@ -129,6 +129,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
                     tabData.lastUpdate = Date.now();
 
+                    // Debug logging
+                    console.log('[Background] Broadcasting newItem:', newItem);
+                    console.log('[Background] newItem structure:', {
+                         hasIndex: 'index' in newItem,
+                         hasTime: 'time' in newItem,
+                         hasEventName: 'eventName' in newItem,
+                         hasPayload: 'payload' in newItem,
+                         indexValue: newItem.index
+                    });
+
                     // Notify side panel
                     broadcastToSidePanel({ type: 'LH_DL_PUSH', tabId, data: newItem });
                }

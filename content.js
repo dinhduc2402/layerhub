@@ -67,17 +67,23 @@
       * Listen for messages from background service worker
       * Forward them to pagehook.js via DOM events
       */
-     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-          switch (msg.type) {
-               case 'REQUEST_INITIAL':
-                    // Side panel requesting initial dataLayer snapshot
-                    document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_INITIAL'));
-                    break;
+     try {
+          if (chrome.runtime?.id) {
+               chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+                    switch (msg.type) {
+                         case 'REQUEST_INITIAL':
+                              // Side panel requesting initial dataLayer snapshot
+                              document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_INITIAL'));
+                              break;
 
-               case 'REQUEST_ACCOUNT':
-                    // Side panel requesting account data
-                    document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_ACCOUNT'));
-                    break;
+                         case 'REQUEST_ACCOUNT':
+                              // Side panel requesting account data
+                              document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_ACCOUNT'));
+                              break;
+                    }
+               });
           }
-     });
+     } catch (e) {
+          // Extension context invalidated - content script is orphaned
+     }
 })();
