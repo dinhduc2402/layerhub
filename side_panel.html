@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LayerHub Datalayer Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="lh-root" class="dtl-root">
+        <div class="dtl-container">
+            <!-- Header -->
+            <div class="dtl-header">
+                <div id="lh-title" class="dtl-title">LayerHub Datalayer</div>
+
+                <!-- Dropdown menu -->
+                <div class="dtl-dropdown-container">
+                    <span class="dtl-dropdown-icon" id="menu-icon" title="Account Menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu-icon lucide-menu">
+                            <path d="M4 5h16"/>
+                            <path d="M4 12h16"/>
+                            <path d="M4 19h16"/>
+                        </svg>
+                    </span>
+                    <div class="dtl-dropdown-menu" id="dropdown-menu">
+                        <div class="dtl-dropdown-item" data-view="account">Account</div>
+                        <div class="dtl-dropdown-item" data-view="events">Events</div>
+                        <div class="dtl-dropdown-item" data-view="settings">Settings</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="dtl-body">
+                <!-- List pane (events table) -->
+                <div id="lh-list" class="dtl-pane dtl-visible">
+                    <table class="dtl-table">
+                        <thead>
+                            <tr>
+                                <th class="dtl-table-header-first">#</th>
+                                <th class="dtl-table-header">Event</th>
+                                <th class="dtl-table-header">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lh-tbody">
+                            <!-- Populated by side_panel.js -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Detail pane -->
+                <div id="lh-detail" class="dtl-pane dtl-hidden">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="side_panel.js"></script>
+</body>
+</html>

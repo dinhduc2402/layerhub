@@ -13,8 +13,13 @@
      },
     "permissions": [
          "tabs",
-         "scripting"
+         "scripting",
+         "sidePanel",
+         "storage"
     ],
+    "side_panel": {
+         "default_path": "side_panel.html"
+    },
      "background": {
           "service_worker": "background.js",
           "type": "module"
@@ -24,7 +29,7 @@
      ],
      "web_accessible_resources": [
           {
-               "resources": ["styles.css", "src/account.js"],
+               "resources": ["src/account.js"],
                "matches": ["<all_urls>"]
           }
      ],
@@ -35,9 +40,6 @@
                ],
                "js": [
                     "content.js"
-               ],
-               "css": [
-                    "styles.css"
                ],
                "run_at": "document_start"
           }

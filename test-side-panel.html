@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LayerHub Side Panel Test Page</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        h1 {
+            color: #0ea5e9;
+        }
+        .info-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .event-log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .event-log div {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #0ea5e9;
+            padding-left: 10px;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0ea5e9;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 LayerHub Side Panel Test Page</h1>
+
+    <div class="info-box">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Load the LayerHub extension in Chrome (chrome://extensions)</li>
+            <li>Click the LayerHub extension icon to open the side panel</li>
+            <li>Watch events appear in real-time in the side panel</li>
+            <li>Use the buttons below to trigger different types of events</li>
+        </ol>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="eventCount">0</div>
+            <div class="stat-label">Events Pushed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="autoCount">0</div>
+            <div class="stat-label">Auto Events (2s)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="manualCount">0</div>
+            <div class="stat-label">Manual Events</div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>Manual Event Triggers</h3>
+        <button onclick="pushPageView()">Page View</button>
+        <button onclick="pushClick()">Click Event</button>
+        <button onclick="pushFormSubmit()">Form Submit</button>
+        <button onclick="pushPurchase()">Purchase</button>
+        <button onclick="pushCustom()">Custom Event</button>
+        <button onclick="pushError()">Error Event</button>
+    </div>
+
+    <div class="info-box">
+        <h3>Event Log (Last 10)</h3>
+        <div class="event-log" id="eventLog"></div>
+    </div>
+
+    <script>
+        // Initialize dataLayer
+        window.dataLayer = window.dataLayer || [];
+
+        let eventCount = 0;
+        let autoCount = 0;
+        let manualCount = 0;
+        const eventLog = [];
+
+        function logEvent(eventName, data) {
+            eventCount++;
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${eventName}`;
+
+            eventLog.unshift(logEntry);
+            if (eventLog.length > 10) eventLog.pop();
+
+            document.getElementById('eventCount').textContent = eventCount;
+            document.getElementById('eventLog').innerHTML = eventLog.map(e => `<div>${e}</div>`).join('');
+        }
+
+        function pushPageView() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'page_view',
+                eventLocation: {
+                    url: window.location.href,
+                    pathname: window.location.pathname,
+                    search: window.location.search
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    trackingId: 'GA-' + Math.random().toString(36).substr(2, 9),
+                    sessionId: 'sess_' + Date.now()
+                },
+                triggers: ['page_load'],
+                conversion: null,
+                userDetails: {
+                    userId: 'user_' + Math.floor(Math.random() * 1000),
+                    userType: 'visitor'
+                },
+                customValues: {
+                    pageTitle: document.title
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('page_view', event);
+        }
+
+        function pushClick() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'click',
+                eventLocation: {
+                    url: window.location.href,
+                    element: 'button',
+                    elementId: 'test-button'
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    category: 'engagement',
+                    action: 'click',
+                    label: 'Test Button'
+                },
+                triggers: ['user_interaction'],
+                conversion: null,
+                userDetails: {
+                    userId: 'user_123'
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('click', event);
+        }
+
+        function pushFormSubmit() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'form_submit',
+                eventLocation: {
+                    url: window.location.href,
+                    formId: 'contact-form'
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    formName: 'Contact Us',
+                    formType: 'lead_generation'
+                },
+                triggers: ['form_completion'],
+                conversion: {
+                    type: 'lead',
+                    value: 0
+                },
+                userDetails: {
+                    userId: 'user_123',
+                    email: 'test@example.com'
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('form_submit', event);
+        }
+
+        function pushPurchase() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'purchase',
+                eventLocation: {
+                    url: window.location.href,
+                    page: 'checkout'
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    transactionId: 'txn_' + Date.now(),
+                    currency: 'USD'
+                },
+                triggers: ['checkout_complete'],
+                conversion: {
+                    type: 'purchase',
+                    value: 99.99,
+                    currency: 'USD',
+                    items: [
+                        { name: 'Product A', price: 49.99, quantity: 1 },
+                        { name: 'Product B', price: 50.00, quantity: 1 }
+                    ]
+                },
+                userDetails: {
+                    userId: 'user_123',
+                    customerType: 'returning'
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('purchase', event);
+        }
+
+        function pushCustom() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'custom_event_' + Math.floor(Math.random() * 100),
+                eventLocation: {
+                    url: window.location.href
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'partial',
+                tracking: {
+                    customMetric: Math.random() * 100
+                },
+                triggers: ['custom_trigger'],
+                conversion: null,
+                userDetails: {
+                    userId: 'user_123'
+                },
+                customValues: {
+                    randomData: Math.random().toString(36),
+                    timestamp: Date.now()
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('custom_event', event);
+        }
+
+        function pushError() {
+            manualCount++;
+            document.getElementById('manualCount').textContent = manualCount;
+
+            const event = {
+                event: 'error',
+                eventLocation: {
+                    url: window.location.href,
+                    errorLine: 123
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    errorType: 'JavaScript Error',
+                    errorMessage: 'Test error message',
+                    errorStack: 'at testFunction (test.js:123:45)'
+                },
+                triggers: ['error_thrown'],
+                conversion: null,
+                userDetails: {
+                    userId: 'user_123'
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent('error', event);
+        }
+
+        // Automatic events every 2 seconds
+        setInterval(() => {
+            autoCount++;
+            document.getElementById('autoCount').textContent = autoCount;
+
+            const events = ['scroll', 'video_play', 'video_pause', 'tab_focus', 'tab_blur'];
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+
+            const event = {
+                event: randomEvent,
+                eventLocation: {
+                    url: window.location.href
+                },
+                eventTimestamp: new Date().toISOString(),
+                consentType: 'full',
+                tracking: {
+                    automatic: true,
+                    timestamp: Date.now()
+                },
+                triggers: ['auto_trigger'],
+                conversion: null,
+                userDetails: {
+                    userId: 'user_123'
+                }
+            };
+
+            window.dataLayer.push(event);
+            logEvent(randomEvent + ' (auto)', event);
+        }, 2000);
+
+        // Push initial page view on load
+        window.addEventListener('load', () => {
+            setTimeout(pushPageView, 500);
+        });
+    </script>
+</body>
+</html>
