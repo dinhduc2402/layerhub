@@ -22,7 +22,7 @@ let currentSettings = null;
 // Initialize the side panel
 async function init() {
      // Notify background that side panel is open
-     chrome.runtime.sendMessage({ type: 'SIDE_PANEL_OPENED' }).catch(() => {});
+     chrome.runtime.sendMessage({ type: 'SIDE_PANEL_OPENED' }).catch(() => { });
 
      // Load settings
      currentSettings = await loadSettings();
@@ -99,10 +99,16 @@ async function requestTabData(tabId) {
                          trackedItems.length = 0;
                          trackedItems.push(...response.items);
 
-                         // Update event counter to match the highest index
-                         if (response.items.length > 0) {
+                         // Sync event counter from background (source of truth)
+                         // Use provided counter, or fall back to max index if not provided
+                         if (response.eventCounter !== undefined) {
+                              eventCounter = response.eventCounter;
+                         } else if (response.items.length > 0) {
+                              // Fallback: infer from max index (for backwards compatibility)
                               const maxIndex = Math.max(...response.items.map(item => item.index || 0));
                               eventCounter = maxIndex;
+                         } else {
+                              eventCounter = 0;
                          }
 
                          if (response.accountData) {
@@ -111,7 +117,7 @@ async function requestTabData(tabId) {
                          render();
                     } else if (!response || !response.ready) {
                          // No data yet, request initial load
-                         chrome.runtime.sendMessage({ type: 'REQUEST_INITIAL', tabId }).catch(() => {});
+                         chrome.runtime.sendMessage({ type: 'REQUEST_INITIAL', tabId }).catch(() => { });
                          showLoadingState();
                     }
                     resolve();
@@ -133,10 +139,13 @@ function handleBackgroundMessage(msg) {
                     trackedItems.length = 0;
                     trackedItems.push(...msg.data);
 
-                    // Update event counter to match the highest index
+                    // Sync event counter from the highest index in initial data
+                    // This ensures counter matches background's state
                     if (msg.data.length > 0) {
                          const maxIndex = Math.max(...msg.data.map(item => item.index || 0));
                          eventCounter = maxIndex;
+                    } else {
+                         eventCounter = 0;
                     }
 
                     render();
@@ -319,7 +328,7 @@ function showAccountView() {
 
      // Request account data if we don't have it
      if (!accountDetailViewElement) {
-          chrome.runtime.sendMessage({ type: 'REQUEST_ACCOUNT', tabId: currentTabId }).catch(() => {});
+          chrome.runtime.sendMessage({ type: 'REQUEST_ACCOUNT', tabId: currentTabId }).catch(() => { });
 
           // Show loading message
           detailPane.innerHTML = "";
@@ -1083,13 +1092,22 @@ function pushTracked(item) {
      if (item.index && item.time && item.eventName && item.payload) {
           // Item already formatted from background - use its index and update counter
           formattedItem = item;
-          // Update counter to match the highest index we've seen
+          // Sync counter to match background's counter (always use background's index as source of truth)
           if (formattedItem.index > eventCounter) {
                eventCounter = formattedItem.index;
           }
      } else {
-          // Format the item
+          // Raw item received (shouldn't happen if background is working correctly)
+          // This is a fallback - but we should never create items here since background handles all formatting
+          console.warn('pushTracked received raw item - background should have formatted it', item);
           if (shouldIgnoreItem(item)) return;
+
+          // Even in fallback, sync counter properly by checking existing items first
+          if (trackedItems.length > 0) {
+               const maxIndex = Math.max(...trackedItems.map(it => it.index || 0));
+               eventCounter = Math.max(eventCounter, maxIndex);
+          }
+
           // Increment counter and use it for index
           eventCounter++;
           formattedItem = {

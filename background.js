@@ -81,16 +81,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                if (tabId && msg.data?.items) {
                     const tabData = ensureTabData(tabId);
 
-                    // Map items with sequential indices using the per-tab counter
-                    tabData.items = msg.data.items.map((item) => {
-                         tabData.eventCounter++;
-                         return {
-                              index: tabData.eventCounter,
-                              time: Date.now(),
-                              eventName: getEventName(item),
-                              payload: item
-                         };
-                    });
+                    // Filter out invalid items and map with sequential indices using the per-tab counter
+                    tabData.items = msg.data.items
+                         .filter(item => !shouldIgnoreItem(item))
+                         .map((item) => {
+                              tabData.eventCounter++;
+                              return {
+                                   index: tabData.eventCounter,
+                                   time: Date.now(),
+                                   eventName: getEventName(item),
+                                   payload: item
+                              };
+                         });
                     tabData.lastUpdate = Date.now();
                     tabData.ready = true;
 
@@ -102,6 +104,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           case 'LH_DL_PUSH':
                // New item pushed to dataLayer
                if (tabId && msg.data?.item) {
+                    // Filter out invalid items - don't process items that should be ignored
+                    if (shouldIgnoreItem(msg.data.item)) {
+                         return; // Silently ignore invalid items
+                    }
+
                     const tabData = ensureTabData(tabId);
 
                     // Increment counter and create new item
@@ -151,10 +158,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                          sendResponse({
                               items: tabData.items,
                               accountData: tabData.accountData,
-                              ready: tabData.ready
+                              ready: tabData.ready,
+                              eventCounter: tabData.eventCounter
                          });
                     } else {
-                         sendResponse({ items: [], accountData: null, ready: false });
+                         sendResponse({ items: [], accountData: null, ready: false, eventCounter: 0 });
                     }
                }
                return true; // Keep channel open for async response
@@ -307,6 +315,20 @@ function ensureTabData(tabId) {
           initTabData(tabId);
      }
      return tabDataStore.get(tabId);
+}
+
+/**
+ * Check if an item should be ignored (not a valid event)
+ */
+function shouldIgnoreItem(item) {
+     if (item == null) return true;
+     const t = typeof item;
+     if (t !== "object") return true;
+     if (typeof item.event === "string" && item.event.trim() !== "") return false;
+     const keys = Object.keys(item);
+     if (!keys.length) return true;
+     if (keys[0] === "0") return true;
+     return false;
 }
 
 /**

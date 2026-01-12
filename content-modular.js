@@ -342,16 +342,7 @@ import { renderDebugView, renderEventDetailView, renderTabContent } from './src/
           }
      });
 
-     window.addEventListener('LH_DL_READY', () => { try { document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_INITIAL')); } catch (_) { } });
      document.addEventListener('LH_DL_READY', () => { try { document.dispatchEvent(new CustomEvent('LH_DL_REQUEST_INITIAL')); } catch (_) { } });
-     window.addEventListener('LH_DL_INITIAL', (e) => {
-          try {
-               if (!awaitingInitial) return;
-               const items = e.detail?.items || [];
-               items.forEach((x) => pushTracked(x));
-          } catch (_) { }
-          cancelInitialRequester();
-     });
      document.addEventListener('LH_DL_INITIAL', (e) => {
           try {
                if (!awaitingInitial) return;
