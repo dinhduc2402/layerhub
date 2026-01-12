@@ -324,7 +324,34 @@ function shouldIgnoreItem(item) {
      if (item == null) return true;
      const t = typeof item;
      if (t !== "object") return true;
-     if (typeof item.event === "string" && item.event.trim() !== "") return false;
+
+     // Blacklist of known invalid/placeholder event names
+     const INVALID_EVENT_NAMES = [
+          'item',           // Generic placeholder
+          'gtm.js',         // GTM internal events
+          'gtm.dom',
+          'gtm.load',
+          'gtm.historyChange',
+          'gtm.scrollDepth',
+          'gtm.linkClick',
+          'gtm.formSubmit',
+          'gtm.timer',
+          'gtm.video',
+          'optimize.activate', // Google Optimize
+     ];
+
+     // Check if item has a valid event property
+     if (typeof item.event === "string" && item.event.trim() !== "") {
+          const eventName = item.event.trim().toLowerCase();
+
+          // Filter out blacklisted events
+          if (INVALID_EVENT_NAMES.some(invalid => eventName === invalid.toLowerCase())) {
+               return true; // Ignore blacklisted events
+          }
+
+          return false; // Valid event, don't ignore
+     }
+
      const keys = Object.keys(item);
      if (!keys.length) return true;
      if (keys[0] === "0") return true;
