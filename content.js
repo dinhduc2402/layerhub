@@ -10,43 +10,56 @@
       * Forward them to background service worker
       */
 
+     /**
+      * Helper to safely send messages (handles extension context invalidation)
+      */
+     function safeSendMessage(message) {
+          try {
+               if (!chrome.runtime?.id) {
+                    // Extension context invalidated (extension was reloaded)
+                    return;
+               }
+               chrome.runtime.sendMessage(message).catch((error) => {
+                    // Silently ignore if extension context is invalidated
+                    if (error.message?.includes('Extension context invalidated')) {
+                         return;
+                    }
+                    // Background may not be ready for other errors
+               });
+          } catch (e) {
+               // Extension context invalidated
+          }
+     }
+
      // Initial dataLayer snapshot
      document.addEventListener('LH_DL_INITIAL', (e) => {
-          chrome.runtime.sendMessage({
+          safeSendMessage({
                type: 'LH_DL_INITIAL',
                data: e.detail
-          }).catch(() => {
-               // Background may not be ready
           });
      });
 
      // New dataLayer item pushed
      document.addEventListener('LH_DL_PUSH', (e) => {
-          chrome.runtime.sendMessage({
+          safeSendMessage({
                type: 'LH_DL_PUSH',
                data: e.detail
-          }).catch(() => {
-               // Background may not be ready
           });
      });
 
      // Pagehook is ready
      document.addEventListener('LH_DL_READY', (e) => {
-          chrome.runtime.sendMessage({
+          safeSendMessage({
                type: 'LH_DL_READY',
                data: e.detail
-          }).catch(() => {
-               // Background may not be ready
           });
      });
 
      // Account data received
      document.addEventListener('LH_DL_ACCOUNT_DATA', (e) => {
-          chrome.runtime.sendMessage({
+          safeSendMessage({
                type: 'LH_DL_ACCOUNT_DATA',
                data: e.detail
-          }).catch(() => {
-               // Background may not be ready
           });
      });
 

@@ -1089,7 +1089,8 @@ function shouldShowEvent(eventName) {
 function pushTracked(item) {
      let formattedItem;
 
-     if (item.index && item.time && item.eventName && item.payload) {
+     // Check if item is already formatted (use 'in' operator to avoid falsy values like 0)
+     if ('index' in item && 'time' in item && 'eventName' in item && 'payload' in item) {
           // Item already formatted from background - use its index and update counter
           formattedItem = item;
           // Sync counter to match background's counter (always use background's index as source of truth)
