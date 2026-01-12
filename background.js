@@ -29,13 +29,13 @@ chrome.action.onClicked.addListener(async (tab) => {
      if (!tab?.id) return;
 
      try {
-          // Inject pagehook if not already injected
-          if (!injectedTabs.has(tab.id)) {
-               await injectPagehook(tab.id);
-          }
-
-          // Open the side panel
+          // Open the side panel first (must happen during user gesture)
           await chrome.sidePanel.open({ windowId: tab.windowId });
+
+          // Then inject pagehook if not already injected (can happen after)
+          if (!injectedTabs.has(tab.id)) {
+               injectPagehook(tab.id); // Don't await - let it run async
+          }
      } catch (e) {
           console.error('Failed to open side panel:', e);
      }
