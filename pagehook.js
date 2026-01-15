@@ -4,13 +4,12 @@
 
     const getDL = () => window.dataLayer || window.datalayer || window.data_layer;
     function emit(type, detail) {
-      try { window.dispatchEvent(new CustomEvent(type, { detail })); } catch (_) { }
       try { document.dispatchEvent(new CustomEvent(type, { detail })); } catch (_) { }
     }
 
     // Create a structured-clone-safe copy that only keeps event objects
     function sanitize(value, depth = 0, seen) {
-      const MAX_DEPTH = 10;
+      const MAX_DEPTH = 6;
       if (value == null) return value;
       const t = typeof value;
       if (t === 'string' || t === 'number' || t === 'boolean') return value;
@@ -84,7 +83,14 @@
         const originalPush = dl.push.bind(dl);
         dl.push = function (...args) {
           const r = originalPush(...args);
-          try { args.forEach(x => emit('LH_DL_PUSH', { item: sanitize(x) })); } catch (e) { }
+          try {
+            args.forEach(x => emit('LH_DL_PUSH', { item: sanitize(x) }));
+            // Clear polling interval since hook is working
+            if (dl.__LH_POLL__) {
+              clearInterval(dl.__LH_POLL__);
+              dl.__LH_POLL__ = null;
+            }
+          } catch (e) { }
           lastIndex = dl.length;
           return r;
         };

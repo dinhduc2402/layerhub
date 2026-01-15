@@ -10,7 +10,6 @@ const MAX_ITEMS = 200;
 // State management
 let currentTabId = null;
 const trackedItems = [];
-let eventCounter = 0; // Global counter for event indices (never resets)
 let selectedItem = null;
 let detailActiveTab = "Raw";
 let currentView = "list"; // "list" or "detail"
@@ -97,19 +96,19 @@ async function requestTabData(tabId) {
                (response) => {
                     if (response && response.items) {
                          trackedItems.length = 0;
-                         trackedItems.push(...response.items);
 
-                         // Sync event counter from background (source of truth)
-                         // Use provided counter, or fall back to max index if not provided
-                         if (response.eventCounter !== undefined) {
-                              eventCounter = response.eventCounter;
-                         } else if (response.items.length > 0) {
-                              // Fallback: infer from max index (for backwards compatibility)
-                              const maxIndex = Math.max(...response.items.map(item => item.index || 0));
-                              eventCounter = maxIndex;
-                         } else {
-                              eventCounter = 0;
-                         }
+                         // Filter out malformed items before adding to trackedItems
+                         const validItems = response.items.filter(item => {
+                              const isValid = item && typeof item === 'object' &&
+                                             'index' in item && 'eventName' in item &&
+                                             'time' in item && 'payload' in item;
+                              if (!isValid) {
+                                   console.warn('Filtering out malformed item from initial load:', item);
+                              }
+                              return isValid;
+                         });
+
+                         trackedItems.push(...validItems);
 
                          if (response.accountData) {
                               buildAccountView(response.accountData);
@@ -137,17 +136,19 @@ function handleBackgroundMessage(msg) {
           case 'LH_DL_INITIAL':
                if (msg.data) {
                     trackedItems.length = 0;
-                    trackedItems.push(...msg.data);
 
-                    // Sync event counter from the highest index in initial data
-                    // This ensures counter matches background's state
-                    if (msg.data.length > 0) {
-                         const maxIndex = Math.max(...msg.data.map(item => item.index || 0));
-                         eventCounter = maxIndex;
-                    } else {
-                         eventCounter = 0;
-                    }
+                    // Filter out malformed items before adding to trackedItems
+                    const validItems = msg.data.filter(item => {
+                         const isValid = item && typeof item === 'object' &&
+                                        'index' in item && 'eventName' in item &&
+                                        'time' in item && 'payload' in item;
+                         if (!isValid) {
+                              console.warn('Filtering out malformed item from LH_DL_INITIAL:', item);
+                         }
+                         return isValid;
+                    });
 
+                    trackedItems.push(...validItems);
                     render();
                }
                break;
@@ -240,27 +241,12 @@ function showRestrictedPageMessage() {
 
 // Helper functions
 function nowTimeString(ts) {
+     if (!ts || isNaN(ts)) return 'Invalid Date';
      const d = new Date(ts);
+     if (isNaN(d.getTime())) return 'Invalid Date';
      return d.toLocaleTimeString();
 }
 
-function getEventNameFromItem(item) {
-     if (!item || typeof item !== "object") return typeof item;
-     if (item.event && typeof item.event === "string") return item.event;
-     const keys = Object.keys(item);
-     return keys.length ? keys[0] : "object";
-}
-
-function shouldIgnoreItem(item) {
-     if (item == null) return true;
-     const t = typeof item;
-     if (t !== "object") return true;
-     if (typeof item.event === "string" && item.event.trim() !== "") return false;
-     const keys = Object.keys(item);
-     if (!keys.length) return true;
-     if (keys[0] === "0") return true;
-     return false;
-}
 
 function formatJsonWithSyntax(obj) {
      const json = JSON.stringify(obj, null, 2);
@@ -309,7 +295,7 @@ function showDetailView(item) {
      listPane.classList.remove("dtl-visible");
      detailPane.classList.add("dtl-visible");
      detailPane.classList.remove("dtl-hidden");
-     const eventName = getEventNameFromItem(item);
+     const eventName = item?.event || 'unknown';
      title.textContent = eventName;
      detailViewMode = "eventDetail";
      renderDetail();
@@ -506,15 +492,22 @@ function render() {
      // Render items in reverse order (newest first)
      for (let i = trackedItems.length - 1; i >= 0; i--) {
           const it = trackedItems[i];
+
+          // Skip malformed items (missing required properties)
+          if (!it || typeof it !== 'object' || !('index' in it) || !('eventName' in it)) {
+               console.warn('Skipping malformed item:', it);
+               continue;
+          }
+
           const tr = document.createElement("tr");
           tr.className = "dtl-table-row";
 
           const tdIdx = document.createElement("td");
-          tdIdx.textContent = String(it.index);
+          tdIdx.textContent = String(it.index ?? 'N/A');
           tdIdx.className = "dtl-table-cell";
 
           const tdEvent = document.createElement("td");
-          tdEvent.textContent = it.eventName;
+          tdEvent.textContent = it.eventName || 'unknown';
           tdEvent.className = "dtl-table-cell";
 
           const tdTime = document.createElement("td");
@@ -1087,59 +1080,32 @@ function shouldShowEvent(eventName) {
 }
 
 function pushTracked(item) {
-     let formattedItem;
-
-     // Debug logging to see what we're receiving
+     // Items from background are always pre-formatted
+     // Debug logging
      console.log('pushTracked received:', item);
-     console.log('Has properties:', {
-          hasIndex: 'index' in item,
-          hasTime: 'time' in item,
-          hasEventName: 'eventName' in item,
-          hasPayload: 'payload' in item
-     });
 
-     // Check if item is already formatted (use 'in' operator to avoid falsy values like 0)
-     if ('index' in item && 'time' in item && 'eventName' in item && 'payload' in item) {
-          // Item already formatted from background - use its index and update counter
-          formattedItem = item;
-          // Sync counter to match background's counter (always use background's index as source of truth)
-          if (formattedItem.index > eventCounter) {
-               eventCounter = formattedItem.index;
-          }
-     } else {
-          // Raw item received (shouldn't happen if background is working correctly)
-          // This is a fallback - but we should never create items here since background handles all formatting
-          console.warn('pushTracked received raw item - background should have formatted it', item);
-          if (shouldIgnoreItem(item)) return;
+     // Validate item structure
+     if (!item || typeof item !== 'object') {
+          console.warn('pushTracked received invalid item (not an object):', item);
+          return;
+     }
 
-          // Even in fallback, sync counter properly by checking existing items first
-          if (trackedItems.length > 0) {
-               const maxIndex = Math.max(...trackedItems.map(it => it.index || 0));
-               eventCounter = Math.max(eventCounter, maxIndex);
-          }
-
-          // Increment counter and use it for index
-          eventCounter++;
-          formattedItem = {
-               index: eventCounter,
-               time: Date.now(),
-               eventName: getEventNameFromItem(item),
-               payload: item
-          };
+     if (!('index' in item) || !('eventName' in item) || !('time' in item) || !('payload' in item)) {
+          console.warn('pushTracked received malformed item (missing required properties):', item);
+          return;
      }
 
      // Apply event filter based on settings
-     if (!shouldShowEvent(formattedItem.eventName)) {
+     if (!shouldShowEvent(item.eventName)) {
           return; // Skip this event
      }
 
-     trackedItems.push(formattedItem);
+     trackedItems.push(item);
 
      // Maintain max items (use settings or default)
      const maxItems = currentSettings?.eventLogging?.maxStoredEvents || MAX_ITEMS;
      if (trackedItems.length > maxItems) {
           trackedItems.shift();
-          // Note: We do NOT re-index items - indices are sequential and never reset
      }
 
      // Re-render the list

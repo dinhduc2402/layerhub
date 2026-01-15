@@ -168,11 +168,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                          sendResponse({
                               items: tabData.items,
                               accountData: tabData.accountData,
-                              ready: tabData.ready,
-                              eventCounter: tabData.eventCounter
+                              ready: tabData.ready
                          });
                     } else {
-                         sendResponse({ items: [], accountData: null, ready: false, eventCounter: 0 });
+                         sendResponse({ items: [], accountData: null, ready: false });
                     }
                }
                return true; // Keep channel open for async response
